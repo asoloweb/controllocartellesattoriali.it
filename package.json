@@ -1,0 +1,19 @@
+{
+  "name": "admin.asoloweb.it",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.6.12",
+    "@fontsource/lexend": "^5.2.11",
+    "@fontsource/libre-bodoni": "^5.2.7",
+    "aos": "^2.3.4",
+    "astro": "^5.16.15",
+    "swiper": "^12.0.3"
+  }
+}

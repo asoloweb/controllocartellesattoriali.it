@@ -1,0 +1,181 @@
+---
+
+import { DIRECTUS_URL, directusItemsUrl } from '../lib/directus';
+
+interface MenuItem {
+	id?: number | string;
+	label?: string;
+	custom_href?: string;
+	pages?: { pages_id?: PageItem | number | string }[] | PageItem[];
+}
+
+interface Menu {
+	id: number;
+	slug?: string;
+	titolo?: string;
+	menu_items?: MenuItem[] | (number | string)[];
+}
+
+interface PageItem {
+	id?: number;
+	slug?: string;
+	title?: string;
+}
+
+interface Options {
+	logo_light?: string;
+}
+
+let logoLightSrc = import.meta.env.PUBLIC_LOGO_LIGHT || '/favicon.svg';
+const currentPath = Astro.url?.pathname ?? '/';
+
+let menuItems: MenuItem[] = [];
+
+try {
+	const optionsUrl = directusItemsUrl('options');
+	optionsUrl.searchParams.set('fields', 'logo_light');
+	const optionsResponse = await fetch(optionsUrl);
+	if (optionsResponse.ok) {
+		const optionsPayload = await optionsResponse.json();
+		const options =
+			optionsPayload?.data && Array.isArray(optionsPayload.data)
+				? optionsPayload.data[0]
+				: optionsPayload?.data;
+		if (options?.logo_light) {
+			logoLightSrc = resolveImageSrc(options.logo_light);
+		}
+	}
+
+	const url = directusItemsUrl('Menus');
+	url.searchParams.set('filter[slug][_eq]', 'menu-principale');
+	url.searchParams.set(
+		'fields',
+		'menu_items.menu_items_id.id,menu_items.menu_items_id.label,menu_items.menu_items_id.custom_href,menu_items.menu_items_id.pages.pages_id.id,menu_items.menu_items_id.pages.pages_id.slug,menu_items.menu_items_id.pages.pages_id.title'
+	);
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+	}
+	const data = await response.json();
+	const menu: Menu | undefined = (data.data || [])[0];
+	const rawItems = Array.isArray(menu?.menu_items) ? menu.menu_items : [];
+	const itemObjects = rawItems
+		.map((item) => {
+			if (!item || typeof item !== 'object') return null;
+			if ('menu_items_id' in item && item.menu_items_id && typeof item.menu_items_id === 'object') {
+				return item.menu_items_id as MenuItem;
+			}
+			return item as MenuItem;
+		})
+		.filter((item): item is MenuItem => Boolean(item));
+
+	menuItems = itemObjects;
+} catch (error) {
+	console.error('Error fetching menu from Directus:', error);
+}
+
+function resolveImageSrc(value: string) {
+	if (!value) return '';
+	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
+		return value;
+	}
+	return `${DIRECTUS_URL}/assets/${value}`;
+}
+
+function getItemPage(item: MenuItem): PageItem | null {
+	const rawPages = item.pages;
+	if (!rawPages || !Array.isArray(rawPages)) return null;
+	const normalizedPages = rawPages
+		.map((page) => {
+			if (!page) return null;
+			if (typeof page === 'object' && 'pages_id' in page) {
+				return page.pages_id && typeof page.pages_id === 'object'
+					? (page.pages_id as PageItem)
+					: null;
+			}
+			if (typeof page === 'object' && 'slug' in page) {
+				return page as PageItem;
+			}
+			return null;
+		})
+		.filter((page): page is PageItem => Boolean(page));
+
+	return normalizedPages[0] ?? null;
+}
+
+function getItemHref(item: MenuItem) {
+	if (item.custom_href) return item.custom_href;
+	const page = getItemPage(item);
+	if (!page?.slug || page.slug === 'home') return '/';
+	return `/${page.slug}`;
+}
+
+function normalizePath(path: string) {
+	if (!path) return '/';
+	let cleanPath = path.split('?')[0].split('#')[0];
+	if (cleanPath.length > 1 && cleanPath.endsWith('/')) {
+		cleanPath = cleanPath.slice(0, -1);
+	}
+	return cleanPath;
+}
+
+function isCurrentMenuItem(href: string) {
+	if (!href) return false;
+	const base = Astro.url?.origin || 'http://localhost';
+	try {
+		const url = new URL(href, base);
+		return normalizePath(url.pathname) === normalizePath(currentPath);
+	} catch {
+		return false;
+	}
+}
+
+function getItemTitle(item: MenuItem, index: number) {
+	return (
+		item.label ||
+		getItemPage(item)?.title ||
+		`Link ${index + 1}`
+	);
+}
+---
+
+<header class="site-header">
+	<nav aria-label="Menu principale">
+		<div>
+			<a href="/">
+				<img class="MenuLogo" src={logoLightSrc} alt="Logo" />
+			</a>
+		</div>
+		<div class="MenuItemsContainer">
+		{menuItems.map((item, index) => {
+			const href = getItemHref(item);
+			const title = getItemTitle(item, index);
+			const isCurrent = isCurrentMenuItem(href);
+			const className = isCurrent ? 'menu_item current_menu_item' : 'menu_item';
+			return (
+				<a href={href} class={className}>
+					{title}
+				</a>
+			);
+		})}
+		</div>
+		<button class="hamburger_button mburger" type="button" aria-label="Menu" aria-expanded="false">
+			<b></b>
+			<b></b>
+			<b></b>
+		</button>
+	</nav>
+</header>
+
+<script is:inline>
+(() => {
+	const button = document.querySelector('.hamburger_button');
+	const menu = document.querySelector('.MenuItemsContainer');
+	if (!button || !menu) return;
+	button.addEventListener('click', () => {
+		const isOpen = menu.classList.toggle('is-open');
+		button.classList.toggle('is-active', isOpen);
+		button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+	});
+})();
+</script>

@@ -1,0 +1,255 @@
+@import "@fontsource/lexend/300.css";
+@import "@fontsource/lexend/400.css";
+@import "@fontsource/lexend/500.css";
+@import "@fontsource/lexend/600.css";
+@import "@fontsource/lexend/700.css";
+@import "@fontsource/libre-bodoni/400.css";
+@import "@fontsource/libre-bodoni/500.css";
+@import "@fontsource/libre-bodoni/600.css";
+@import "@fontsource/libre-bodoni/700.css";
+
+:root {
+  --blu: #003147;
+  --oro: #c1a776;
+  --bianco: #ffffff;
+  --nero: #0b0b0b;
+  --grigio-chiaro: #f5f5f5;
+  --max-width: 1200px;
+  --font-body: "Lexend", "Helvetica Neue", Arial, sans-serif;
+  --font-heading: "Libre Bodoni", "Times New Roman", serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--nero);
+  background: linear-gradient(45deg, var(--blu), #021720);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-header {
+    background: var(--blu);
+    color: var(--bianco);
+    border-top: 10px solid var(--oro);
+    display: flex;
+    height: 130px;
+    border-bottom: 2px solid #f2f2f224;
+}
+
+.site-header nav {
+  max-width: var(--max-width);
+  width:100%;
+  justify-content: space-between;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.MenuLogo {
+  height: 90px;
+  width: auto;
+}
+
+.MenuItemsContainer {
+  display: flex;
+  gap:10px;
+}
+
+.hamburger_button {
+  display: none;
+  border: 0;
+  background: transparent;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.mburger {
+  width: 32px;
+  height: 24px;
+  position: relative;
+}
+
+.mburger b {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--bianco);
+  border-radius: 2px;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.mburger b:nth-child(1) {
+  top: 0;
+}
+
+.mburger b:nth-child(2) {
+  top: 10px;
+}
+
+.mburger b:nth-child(3) {
+  top: 20px;
+}
+
+.mburger.is-active b:nth-child(1) {
+  transform: translateY(10px) rotate(45deg);
+}
+
+.mburger.is-active b:nth-child(2) {
+  opacity: 0;
+}
+
+.mburger.is-active b:nth-child(3) {
+  transform: translateY(-10px) rotate(-45deg);
+}
+
+.menu_item {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    border-radius: 999px;
+    transition: all .6s ease-in-out;
+    letter-spacing: 1px;
+    font-size:18px;
+    font-family: var(--font-heading);
+    font-weight: 400;
+    color:#f2f2f2;
+}
+
+.menu_item:hover {
+  background: #ffffff1a;
+}
+
+.current_menu_item {
+  background: #ffffff1a;
+}
+
+.site-footer {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  flex-direction: column;
+}
+
+.footer_data {
+  color:#f9f9f9;
+  font-size:12px;
+  margin-top:30px;
+}
+
+.site-footer nav {
+    max-width: var(--max-width);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    border-top: 2px solid #f2f2f221;
+    padding: 100px 0;
+    border-bottom: 2px solid #f2f2f221;
+}
+
+.FooterItemsContainer {
+  display: flex;
+  gap:50px;
+}
+
+.FooterMenuColumn {
+  display: flex;
+  flex-direction: column;
+}
+
+.page_header {
+  min-height: 420px;
+  display: flex;
+  background-size: cover;
+  background-position: center;
+  color: var(--bianco);
+  margin-bottom:50px;
+}
+
+.page_header_inner {
+    width: 100%;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 48px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.page_header_inner h1 {
+  font-size:90px;
+  margin:0;
+}
+
+.page_header_inner p {
+  margin: 0;
+  max-width: calc(var(--max-width)/2);
+  font-size: 22px;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+
+  .MenuItemsContainer {
+    position: absolute;
+    background: #fff;
+    display: none;
+    flex-direction: column;
+    z-index: 99999999;
+    padding: 20px;
+    border-radius: 20px;
+    top: 142px;
+    width: calc(100% - 20px);
+    left: 10px;
+    color: var(--blu);
+  }
+
+  .MenuItemsContainer a {
+    color:var(--blu);
+    font-size: 24px;
+    padding: 15px;
+  }
+
+  .MenuItemsContainer.is-open {
+    display: flex;
+  }
+
+  .hamburger_button {
+    display: inline-flex;
+  }
+
+  .menu_item {
+    padding: 8px 12px;
+  }
+}

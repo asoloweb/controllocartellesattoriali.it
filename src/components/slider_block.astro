@@ -1,0 +1,165 @@
+---
+import { DIRECTUS_URL } from '../lib/directus';
+
+interface SlideItem {
+	titolo?: string;
+	sottotitolo?: string;
+	label?: string;
+	href?: string;
+	immagine?: string;
+}
+
+interface Props {
+	slides?: SlideItem[];
+	titolo?: string;
+	sottotitolo?: string;
+	label?: string;
+	href?: string;
+}
+
+const {
+	slides = [],
+	titolo = '',
+	sottotitolo = '',
+	label = '',
+	href = '',
+} = Astro.props;
+
+const resolvedSlides =
+	slides.length > 0
+		? slides
+		: [
+				{
+					titolo,
+					sottotitolo,
+					label,
+					href,
+				},
+		  ];
+
+const hasMultipleSlides = resolvedSlides.length > 1;
+
+const sliderId = `slider-${Math.random().toString(36).slice(2)}`;
+
+function resolveImageSrc(value: string | undefined) {
+	if (!value) return '';
+	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
+		return value;
+	}
+	return `${DIRECTUS_URL}/assets/${value}`;
+}
+---
+
+<div class="slider_block swiper" id={sliderId}>
+	<div class="swiper-wrapper">
+		{resolvedSlides.map((slide) => (
+			<div
+				class="swiper-slide single_slide"
+				style={slide.immagine ? `background-image: url('${resolveImageSrc(slide.immagine)}')` : ''}
+			>
+				{slide.titolo && <h1 data-aos="fade-up" data-aos-duration="1500">{slide.titolo}</h1>}
+				{slide.sottotitolo && <h2 data-aos="fade-up" data-aos-duration="1800">{slide.sottotitolo}</h2>}
+				{slide.label && slide.href && (
+					<button data-aos="fade-up" data-aos-duration="2000" class="slider_button" type="button" data-href={slide.href}>
+						{slide.label}
+					</button>
+				)}
+				{slide.immagine && (
+					<span class="slide_image_sr" aria-hidden="true"></span>
+				)}
+			</div>
+		))}
+	</div>
+	{hasMultipleSlides && <div class="swiper-pagination"></div>}
+	{hasMultipleSlides && <div class="swiper-button-prev"></div>}
+	{hasMultipleSlides && <div class="swiper-button-next"></div>}
+</div>
+
+
+<style>
+		.title_block {
+			margin: 32px 0 16px;
+			border-left: 6px solid var(--oro);
+			padding-left: 14px;
+		}
+
+		.title_block h1 {
+		margin: 0;
+		color: var(--blu);
+		}
+
+		.slider_block {
+		margin:0;
+		display: grid;
+		gap: 16px;
+		height:calc(100vh - 120px);
+		}
+
+		.single_slide {
+		align-items: center;
+		}
+
+		.slider_block .single_slide {
+		min-height: 220px;
+		padding: 24px;
+		border-radius: 16px;
+		background-size: cover;
+		background-position: center;
+		color: var(--bianco);
+		position: relative;
+		overflow: hidden;
+		}
+
+		.slider_button {
+		background-color: transparent;
+		color: var(--oro);
+		border: navajowhite;
+		font-size: 22px;
+		font-weight: bold;
+		font-family: var(--font-heading);
+		}
+
+		.single_slide h1 {
+		font-size:100px;
+		line-height: 100px;
+		max-width: var(--max-width);
+		margin:0;
+		}
+
+		.single_slide h2 {
+		font-size:25px;
+		line-height: 30px;
+		max-width: calc(var(--max-width)/2);
+		}
+
+		.slider_block .single_slide > * {
+		position: relative;
+		z-index: 1;
+		}
+
+	.single_slide {
+		text-align: center;
+		padding: 20px;
+		background-size: cover;
+		background-position: center;
+		min-height: 240px;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 8px;
+	}
+	.slide_image_sr {
+		display: none;
+	}
+	:global(.swiper-button-prev),
+	:global(.swiper-button-next) {
+		color: #111;
+	}
+
+	@media (max-width: 640px) {
+		.single_slide h1 {
+			font-size:45px;
+			line-height:50px;
+		}
+	}
+</style>

@@ -1,0 +1,121 @@
+---
+import { Image } from 'astro:assets';
+import { DIRECTUS_URL } from '../lib/directus';
+
+interface Props {
+	item: string;
+	titolo?: string;
+	sottotitolo?: string;
+	paragrafo?: string;
+	href?: string;
+	label?: string;
+	immagine?: string;
+	inverti?: boolean;
+	background_color?: string;
+}
+
+const { 
+	item, 
+	titolo = '', 
+	sottotitolo = '', 
+	paragrafo = '', 
+	href = '', 
+	label = '', 
+	immagine = '',
+	inverti = false,
+	background_color = ''
+} = Astro.props;
+
+function resolveImageSrc(value: string) {
+	if (!value) return '';
+	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
+		return value;
+	}
+	return `${DIRECTUS_URL}/assets/${value}`;
+}
+---
+
+<div
+	data-aos="fade-up"
+     data-aos-duration="1500"
+	class={`hero_block${inverti ? ' hero_block_inverted' : ''}`}
+	style={background_color ? `background-color: ${background_color};` : undefined}
+>
+	{immagine && (
+		<div class="colonna colonna_immagine">
+			<Image
+				class="hero_image"
+				data-aos="fade-up"
+				data-aos-duration="2000"
+				src={resolveImageSrc(immagine)}
+				alt={sottotitolo || titolo}
+				width={1200}
+				height={800}
+			/>
+		</div>
+	)}
+	<div class="colonna colonna_testo">
+		{titolo && <div class="title">{titolo}</div>}
+		{sottotitolo && <h3>{sottotitolo}</h3>}
+		{paragrafo && <div class="hero_text" set:html={paragrafo} />}
+		{label && href && (
+			<a class="hero_button" href={href}>
+				{label}
+			</a>
+		)}
+	</div>
+</div>
+
+<style>
+	.hero_block {
+		padding: 30px;
+		color:#fff;
+		margin-bottom: 50px;
+		display: flex;
+		gap: 50px;
+		border-radius: 40px;
+		max-width: var(--max-width);
+		margin: auto;
+		margin-bottom:40px;
+	}
+	.colonna {
+		flex: 1;
+	}
+
+	.hero_block_inverted {
+		flex-direction: row-reverse;
+	}
+
+	.colonna_testo {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;	
+	}
+
+	.colonna_testo .title {
+		font-size: 42px;
+		font-family: var(--font-body);
+		line-height: 40px;
+		border-bottom: 4px solid var(--oro);
+		padding-bottom: 30px;
+		margin-bottom: 30px;
+		font-weight: 500;
+	}
+
+	.hero_button {
+		display: inline-block;
+		color: var(--oro);
+		text-decoration: none;
+	}
+	.hero_text {
+		margin: 0 0 30px;
+		line-height: 24px;
+		font-size: 19px;
+		font-weight: 300;
+	}
+	.hero_image {
+		max-width: 100%;
+		height: auto;
+		display: block;
+	}
+</style>

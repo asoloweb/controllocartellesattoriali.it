@@ -1,0 +1,237 @@
+---
+import HeroBlock from '../components/hero_block.astro';
+import TitleBlock from '../components/title_block.astro';
+import SliderBlock from '../components/slider_block.astro';
+import CardsBlock from '../components/cards_block.astro';
+import { DIRECTUS_URL } from '../lib/directus';
+
+type HeroBlockItem = {
+	id: number;
+	titolo?: string;
+	sottotitolo?: string;
+	paragrafo?: string;
+	label?: string;
+	href?: string;
+	immagine?: string;
+	inverti?: boolean;
+	background_color?: string;
+};
+
+type SlideItem = {
+	id?: number;
+	titolo?: string;
+	sottotitolo?: string;
+	label?: string;
+	href?: string;
+	immagine?: string;
+};
+
+type SliderItem = {
+	id?: number;
+	slides?: { item?: SlideItem }[] | SlideItem[];
+};
+
+type SliderBlockItem = {
+	id?: number;
+	slider?: SliderItem | number | null;
+};
+
+type TitleBlockItem = {
+	id: number;
+	title?: string;
+};
+
+type PageRef = {
+	id?: number;
+	slug?: string;
+};
+
+type SingleCardItem = {
+	id?: number;
+	titolo_card?: string;
+	immagine?: string;
+	href?: string;
+	link?: PageRef | number | null;
+};
+
+type CardRelation = {
+	single_card_id?: SingleCardItem | number | null;
+};
+
+type CardsBlockItem = {
+	id?: number;
+	titolo?: string;
+	card?: CardRelation[] | SingleCardItem[];
+};
+
+type EditorEntry = {
+	collection?: string;
+	item?: HeroBlockItem | TitleBlockItem | SliderBlockItem | CardsBlockItem | number | string | null;
+};
+
+type Page = {
+	title?: string;
+	description?: string;
+	Titolo?: string;
+	Sottotitolo?: string;
+	contenuto?: string;
+	hide_page_header?: boolean;
+	featured_image?: string;
+	editor?: EditorEntry[];
+};
+
+interface Props {
+	page: Page | null;
+	notFoundTitle?: string;
+	notFoundMessage?: string;
+	showHeader?: boolean;
+}
+
+const {
+	page,
+	notFoundTitle = 'Pagina non trovata',
+	notFoundMessage = 'La pagina richiesta non esiste.',
+	showHeader = true,
+} = Astro.props;
+
+const blocks = Array.isArray(page?.editor) ? page.editor : [];
+const pageTitle = page?.title || page?.Titolo || '';
+const pageDescription = page?.description || '';
+const showPageHeader = page ? showHeader && !page.hide_page_header : false;
+const pageHeaderImage = page?.featured_image ? resolveImageSrc(page.featured_image) : '';
+
+function resolveImageSrc(value: string) {
+	if (!value) return '';
+	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
+		return value;
+	}
+	return `${DIRECTUS_URL}/assets/${value}`;
+}
+
+function resolveCollection(block: EditorEntry) {
+	if (block.collection) return block.collection;
+	const item = block.item;
+	if (item && typeof item === 'object') {
+		if ('card' in item) {
+			return 'cards_block';
+		}
+		if ('paragrafo' in item || 'sottotitolo' in item || 'titolo' in item) {
+			return 'hero_block';
+		}
+		if ('slider' in item) {
+			return 'slider_block';
+		}
+		if ('title' in item) {
+			return 'title_block';
+		}
+	}
+	return null;
+}
+
+function normalizeSlides(input: SliderItem | number | null | undefined) {
+	if (!input || typeof input !== 'object') return [];
+	const rawSlides = (input as SliderItem).slides;
+	const slidesArray = Array.isArray(rawSlides)
+		? rawSlides
+		: rawSlides && typeof rawSlides === 'object' && Array.isArray((rawSlides as any).data)
+		? (rawSlides as any).data
+		: [];
+	return slidesArray
+		.map((slide) => {
+			if (!slide) return null;
+			if ('item' in slide && typeof slide.item === 'object') return slide.item;
+			if ('titolo' in slide || 'sottotitolo' in slide || 'immagine' in slide) {
+				return slide as SlideItem;
+			}
+			return null;
+		})
+		.filter((slide): slide is SlideItem => Boolean(slide));
+}
+
+function normalizeCards(input: CardRelation[] | SingleCardItem[] | undefined) {
+	if (!Array.isArray(input)) return [];
+	return input
+		.map((entry) => {
+			if (!entry || typeof entry !== 'object') return null;
+			if ('single_card_id' in entry) {
+				return entry.single_card_id && typeof entry.single_card_id === 'object'
+					? (entry.single_card_id as SingleCardItem)
+					: null;
+			}
+			if ('titolo_card' in entry || 'immagine' in entry || 'href' in entry) {
+				return entry as SingleCardItem;
+			}
+			return null;
+		})
+		.filter((card): card is SingleCardItem => Boolean(card));
+}
+---
+
+{page ? (
+	<>
+		{showPageHeader ? (
+			<div
+				class="page_header"
+				style={pageHeaderImage ? `background-image: url('${pageHeaderImage}')` : undefined}
+			>
+				<div class="page_header_inner">
+					{pageTitle && <h1 data-aos="fade-up" data-aos-duration="1500">{pageTitle}</h1>}
+					{pageDescription && <p data-aos="fade-up" data-aos-duration="1800">{pageDescription}</p>}
+				</div>
+			</div>
+		) : (
+			<>
+				
+			</>
+)}
+		{page?.contenuto && <div>{page.contenuto}</div>}
+		{blocks.map((block) => {
+			const collection = resolveCollection(block);
+			if (!collection) return null;
+			if (!block.item || typeof block.item !== 'object') return null;
+
+			switch (collection) {
+				case 'hero_block': {
+					const hero = block.item as HeroBlockItem;
+					return (
+						<HeroBlock
+							titolo={hero.titolo}
+							sottotitolo={hero.sottotitolo}
+							paragrafo={hero.paragrafo}
+							href={hero.href}
+							label={hero.label}
+							immagine={hero.immagine}
+							inverti={hero.inverti}
+							background_color={hero.background_color}
+						/>
+					);
+				}
+				case 'title_block': {
+					const title = block.item as TitleBlockItem;
+					return <TitleBlock item={String(title.id ?? '')} titolo={title.title} />;
+				}
+				case 'slider_block': {
+					const sliderBlock = block.item as SliderBlockItem;
+					const slides = normalizeSlides(
+						sliderBlock?.slider && typeof sliderBlock.slider === 'object'
+							? sliderBlock.slider
+							: null
+					);
+					return <SliderBlock slides={slides} />;
+				}
+				case 'cards_block': {
+					const cardsBlock = block.item as CardsBlockItem;
+					const cards = normalizeCards(cardsBlock.card);
+					return <CardsBlock titolo={cardsBlock.titolo} card={cards} />;
+				}
+				default:
+					return null;
+			}
+		})}
+	</>
+) : (
+	<>
+		<h1>{notFoundTitle}</h1>
+		<p>{notFoundMessage}</p>
+	</>
+)}

@@ -1,0 +1,40 @@
+<!-- struttura da utilizare per l'header-->
+ <header>
+    <nav>
+        <a href="/">
+            <img src="{{logo_light}}"/>
+        </a>
+        <a href="{{href}}" class="menu_item">
+            {{label}}
+        </a>
+    </nav>
+ </header>
+
+<!-- hero_block raw html Da usare come struttura per il blocco -->
+<div class="hero_block">
+    <div class="colonna">
+        <h1>{{titolo}}</h1>
+        <h3>{{sottotitolo}}</h3>
+        <p>{{paragrafo}}</p>
+        <button href="{{href}}">{{label}}</button>
+    </div>
+    <div class="colonna">
+        <img src="{{immagine}}"/>
+    </div>
+</div>
+
+
+<!-- title_block raw html Da usare come struttura per il blocco -->
+<div class="title_block">
+    <h1>{{title}}</h1>>
+</div>
+
+
+<!-- slider_block raw html Da usare come struttura per il blocco -->
+<div class="slider_block">
+    <div class="single_slide" style="background-image:url('{{immagine}}')">
+        <h1>{{titolo}}</h1>
+        <h2>{{sottotitolo}}</h2>
+        <button href="{{href}}">{{label}}</button>
+    </div>
+</div>

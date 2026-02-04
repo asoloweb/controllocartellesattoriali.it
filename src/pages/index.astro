@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageContent from '../components/PageContent.astro';
+import { directusItemsUrl } from '../lib/directus';
+
+type Page = {
+	title?: string;
+	Titolo?: string;
+	seo_title?: string;
+	seo_desc?: string;
+	hide_page_header?: boolean;
+	page_header?: string;
+	editor?: unknown[];
+};
+
+async function fetchHomePage() {
+	const url = directusItemsUrl('pages');
+	url.searchParams.set(
+		'fields',
+		'*,slug.*,editor.item.*,editor.item.slider.*,editor.item.slider.slides.item.*,editor.item.card.single_card_id.*,editor.item.card.single_card_id.link.id,editor.item.card.single_card_id.link.slug,editor.item.card.single_card_id.link.title'
+	);
+	url.searchParams.set('filter[status][_eq]', 'published');
+	url.searchParams.set('filter[_or][0][slug][_eq]', 'home');
+	url.searchParams.set('filter[_or][1][slug][slug][_eq]', 'home');
+	url.searchParams.set('filter[_or][2][title][_eq]', 'Home');
+	const response = await fetch(url);
+	const data = await response.json();
+	return data?.data?.[0] ?? null;
+}
+
+const page: Page | null = await fetchHomePage();
+---
+
+<BaseLayout
+	title={page?.title || page?.Titolo || 'Home'}
+	seoTitle={page?.seo_title}
+	seoDescription={page?.seo_desc}
+>
+	<PageContent
+		page={page}
+		notFoundTitle="Home non trovata"
+		notFoundMessage="La pagina richiesta non esiste."
+	/>
+</BaseLayout>

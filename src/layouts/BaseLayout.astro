@@ -1,0 +1,75 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { DIRECTUS_URL, directusItemsUrl } from '../lib/directus';
+import '../styles/global.css';
+
+export interface Props {
+	title: string;
+	seoTitle?: string;
+	seoDescription?: string;
+}
+
+const { title, seoTitle, seoDescription } = Astro.props;
+const resolvedTitle = seoTitle || title;
+
+function resolveImageSrc(value: string) {
+	if (!value) return '';
+	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
+		return value;
+	}
+	return `${DIRECTUS_URL}/assets/${value}`;
+}
+
+let logoLightSrc = import.meta.env.PUBLIC_LOGO_LIGHT || '/favicon.svg';
+
+try {
+	const optionsUrl = directusItemsUrl('options');
+	optionsUrl.searchParams.set('fields', 'logo_light');
+	const optionsResponse = await fetch(optionsUrl);
+	if (optionsResponse.ok) {
+		const optionsPayload = await optionsResponse.json();
+		const options =
+			optionsPayload?.data && Array.isArray(optionsPayload.data)
+				? optionsPayload.data[0]
+				: optionsPayload?.data;
+		if (options?.logo_light) {
+			logoLightSrc = resolveImageSrc(options.logo_light);
+		}
+	}
+} catch (error) {
+	console.error('Error fetching options for favicon:', error);
+}
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href={logoLightSrc} />
+		<link rel="icon" href={logoLightSrc} />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{resolvedTitle}</title>
+		{seoDescription && <meta name="description" content={seoDescription} />}
+		<link rel="stylesheet" href="/vendor/aos.css" />
+		<link rel="stylesheet" href="/vendor/swiper-bundle.min.css" />
+		<!-- Cloudflare Web Analytics -->
+		<script
+			defer
+			src="https://static.cloudflareinsights.com/beacon.min.js"
+			data-cf-beacon='{"token": "e50ba351768e489c93b362f78d5f2442"}'
+		></script>
+		<!-- End Cloudflare Web Analytics -->
+	</head>
+	<body>
+		<Header />
+		<main>
+			<slot />
+		</main>
+		<Footer />
+		<script defer src="/vendor/aos.js"></script>
+		<script defer src="/vendor/swiper-bundle.min.js"></script>
+		<script defer src="/scripts/aos-init.js"></script>
+		<script defer src="/scripts/swiper-init.js"></script>
+	</body>
+</html>

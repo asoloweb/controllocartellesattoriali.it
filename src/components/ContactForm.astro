@@ -1,0 +1,246 @@
+---
+import { DIRECTUS_URL } from '../lib/directus';
+
+interface Props {
+	title?: string;
+}
+
+const { title = 'Invia richiesta' } = Astro.props;
+
+const flowTriggerId = import.meta.env.PUBLIC_DIRECTUS_FLOW_TRIGGER_ID;
+const webhookUrl = import.meta.env.PUBLIC_DIRECTUS_WEBHOOK_RICHIESTE
+	? import.meta.env.PUBLIC_DIRECTUS_WEBHOOK_RICHIESTE
+	: flowTriggerId
+	? `${DIRECTUS_URL}/flows/trigger/${flowTriggerId}`
+	: '';
+---
+
+<section class="contact_form">
+	<h2 class="contact_form_title">{title}</h2>
+
+	<form class="contact_form_form" method="post" data-webhook-url={webhookUrl}>
+		<label class="contact_form_field">
+			<span>Ragione sociale</span>
+			<input name="ragione_sociale" type="text" autocomplete="organization" required />
+		</label>
+
+		<label class="contact_form_field">
+			<span>Email</span>
+			<input name="email" type="email" autocomplete="email" required />
+		</label>
+
+		<label class="contact_form_field">
+			<span>Telefono</span>
+			<input name="telefono" type="tel" autocomplete="tel" />
+		</label>
+
+		<label class="contact_form_field">
+			<span>Referente</span>
+			<input name="referente" type="text" autocomplete="name" required />
+		</label>
+
+		<label class="contact_form_field">
+			<span>Messaggio</span>
+			<textarea name="messaggio" rows={6} required></textarea>
+		</label>
+
+		<label class="contact_form_privacy">
+			<input name="privacy" type="checkbox" required />
+			<span>
+				Accetto la <a href="/privacy-policy">privacy policy</a>
+			</span>
+		</label>
+
+		<button class="contact_form_submit" type="submit">Invia richiesta</button>
+		<p class="contact_form_status" role="status" aria-live="polite"></p>
+	</form>
+</section>
+
+<script type="module">
+	const form = document.querySelector('.contact_form_form');
+	if (form instanceof HTMLFormElement) {
+		const statusEl = form.querySelector('.contact_form_status');
+		const submitButton = form.querySelector('.contact_form_submit');
+		const webhookUrl = form.dataset.webhookUrl;
+
+		form.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			if (!webhookUrl) {
+				if (statusEl) {
+					statusEl.textContent =
+						"Webhook non configurato. Imposta PUBLIC_DIRECTUS_WEBHOOK_RICHIESTE o PUBLIC_DIRECTUS_FLOW_TRIGGER_ID.";
+					statusEl.dataset.state = 'error';
+				}
+				return;
+			}
+
+			if (submitButton instanceof HTMLButtonElement) {
+				submitButton.disabled = true;
+			}
+			if (statusEl) {
+				statusEl.textContent = 'Invio in corso...';
+				statusEl.dataset.state = 'loading';
+			}
+
+			try {
+				const formData = new FormData(form);
+				const ragioneSociale = String(formData.get('ragione_sociale') || '').trim();
+				const email = String(formData.get('email') || '').trim();
+				const telefono = String(formData.get('telefono') || '').trim();
+				const referente = String(formData.get('referente') || '').trim();
+				const messaggio = String(formData.get('messaggio') || '').trim();
+
+				const contattoLines = [
+					`Ragione sociale: ${ragioneSociale}`,
+					`Email: ${email}`,
+					`Telefono: ${telefono || '-'}`,
+					`Referente: ${referente}`,
+					`Messaggio: ${messaggio}`,
+				];
+				const contatto = contattoLines.join('\n');
+
+				const payload = {
+					contatto,
+					ragione_sociale: ragioneSociale,
+					email,
+					telefono,
+					referente,
+					messaggio,
+				};
+
+				const response = await fetch(webhookUrl, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						...payload,
+						data: payload,
+						payload,
+						body: payload,
+					}),
+				});
+
+				if (!response.ok) {
+					throw new Error(`Webhook error: ${response.status}`);
+				}
+
+				form.reset();
+				if (statusEl) {
+					statusEl.textContent = 'Richiesta inviata con successo.';
+					statusEl.dataset.state = 'success';
+				}
+			} catch (error) {
+				console.error('Errore invio richiesta:', error);
+				if (statusEl) {
+					statusEl.textContent = "Errore durante l'invio. Riprova più tardi.";
+					statusEl.dataset.state = 'error';
+				}
+			} finally {
+				if (submitButton instanceof HTMLButtonElement) {
+					submitButton.disabled = false;
+				}
+			}
+		});
+	}
+</script>
+
+<style>
+	.contact_form {
+		background: var(--bianco);
+		border-radius: 24px;
+		padding: 28px;
+		color: var(--nero);
+	}
+
+	.contact_form_title {
+		margin: 0 0 18px;
+		font-size: 28px;
+	}
+
+	.contact_form_form {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+
+	.contact_form_field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-size: 14px;
+	}
+
+	.contact_form_field input,
+	.contact_form_field textarea {
+		border: 1px solid #d9d9d9;
+		border-radius: 12px;
+		padding: 12px 14px;
+		font: inherit;
+	}
+
+	.contact_form_field textarea {
+		resize: vertical;
+		min-height: 140px;
+	}
+
+	.contact_form_privacy {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin-top: 4px;
+		font-size: 14px;
+	}
+
+	.contact_form_privacy input {
+		width: 18px;
+		height: 18px;
+	}
+
+	.contact_form_privacy a {
+		color: var(--blu);
+		text-decoration: underline;
+	}
+
+	.contact_form_submit {
+		margin-top: 6px;
+		border: 0;
+		border-radius: 999px;
+		padding: 12px 18px;
+		background: var(--blu);
+		color: var(--bianco);
+		font-family: var(--font-heading);
+		font-size: 16px;
+		cursor: pointer;
+		transition: transform 180ms ease, opacity 180ms ease;
+	}
+
+	.contact_form_submit:hover {
+		transform: translateY(-2px);
+		opacity: 0.95;
+	}
+
+	.contact_form_submit:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+		transform: none;
+	}
+
+	.contact_form_status {
+		margin: 6px 2px 0;
+		font-size: 14px;
+		min-height: 20px;
+	}
+
+	.contact_form_status[data-state='success'] {
+		color: #1c7c3a;
+	}
+
+	.contact_form_status[data-state='error'] {
+		color: #b42318;
+	}
+
+	.contact_form_status[data-state='loading'] {
+		color: #555;
+	}
+</style>

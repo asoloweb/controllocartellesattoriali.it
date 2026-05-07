@@ -15,12 +15,12 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 
 	<form class="contact_form_form" method="post">
 		<label class="contact_form_field">
-			<span>Email</span>
+			<span>Email *</span>
 			<input name="email" type="email" autocomplete="email" required />
 		</label>
 
 		<label class="contact_form_field">
-			<span>Numero di telefono</span>
+			<span>Numero di telefono *</span>
 			<input name="telefono" type="tel" autocomplete="tel" required />
 		</label>
 
@@ -85,7 +85,18 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 				});
 
 				if (!response.ok) {
-					throw new Error(`Errore invio richiesta: ${response.status}`);
+					let detail = '';
+					try {
+						const errorPayload = await response.json();
+						detail = String(errorPayload?.error || errorPayload?.detail || '').trim();
+					} catch {
+						// no-op
+					}
+					throw new Error(detail || `Errore invio richiesta: ${response.status}`);
+				}
+
+				if (window.umami && typeof window.umami.track === 'function') {
+					window.umami.track('partecipa_form_submit', { email, telefono });
 				}
 
 				form.reset();
@@ -96,7 +107,8 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 			} catch (error) {
 				console.error('Errore invio richiesta:', error);
 				if (statusEl) {
-					statusEl.textContent = "Errore durante l'invio. Riprova più tardi.";
+					const message = error instanceof Error && error.message ? error.message : '';
+					statusEl.textContent = message || "Errore durante l'invio. Riprova più tardi.";
 					statusEl.dataset.state = 'error';
 				}
 			} finally {

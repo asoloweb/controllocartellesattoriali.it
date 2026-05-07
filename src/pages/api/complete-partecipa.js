@@ -13,8 +13,9 @@ function jsonResponse(status, body) {
 
 async function directusRequest(env, path, options = {}) {
 	const url = `${DIRECTUS_URL(env)}${path}`;
+	const directusToken = env.DIRECTUS_TOKEN || env.PUBLIC_DIRECTUS_TOKEN;
 	const headers = {
-		Authorization: `Bearer ${env.DIRECTUS_TOKEN}`,
+		Authorization: `Bearer ${directusToken}`,
 		'Content-Type': 'application/json',
 		...(options.headers || {}),
 	};
@@ -50,7 +51,7 @@ function parseRawBody(rawText, contentType) {
 export const prerender = false;
 
 async function handleRequest(request, env) {
-	if (!env.DIRECTUS_TOKEN) {
+	if (!env.DIRECTUS_TOKEN && !env.PUBLIC_DIRECTUS_TOKEN) {
 		return jsonResponse(500, { error: 'Missing DIRECTUS_TOKEN' });
 	}
 
@@ -95,10 +96,17 @@ async function handleRequest(request, env) {
 	const contatto =
 		String(body?.contatto || '').trim() ||
 		[`Email: ${email}`, `Telefono: ${telefono}`, 'Consenso privacy: si'].join('\n');
+	const dataRichiesta = new Date().toISOString();
 
 	const richiestaResponse = await directusRequest(env, '/items/richieste', {
 		method: 'POST',
-		body: JSON.stringify({ contatto }),
+		body: JSON.stringify({
+			email,
+			telefono,
+			privacy,
+			data_richiesta: dataRichiesta,
+			contatto,
+		}),
 	});
 
 	if (!richiestaResponse.ok) {

@@ -114,6 +114,7 @@ type EditorEntry = {
 
 type Page = {
 	title?: string;
+	slug?: string | { slug?: string };
 	description?: string;
 	Titolo?: string;
 	Sottotitolo?: string;
@@ -140,6 +141,14 @@ const {
 const blocks = Array.isArray(page?.editor) ? page.editor : [];
 const pageTitle = page?.title || page?.Titolo || '';
 const pageDescription = page?.description || '';
+const rawPageSlug = page?.slug;
+const pageSlug =
+	typeof rawPageSlug === 'string'
+		? rawPageSlug
+		: rawPageSlug && typeof rawPageSlug === 'object' && 'slug' in rawPageSlug
+		? String(rawPageSlug.slug || '')
+		: '';
+const isContattiPage = pageSlug.trim().toLowerCase() === 'contatti';
 const showPageHeader = page ? showHeader && !page.hide_page_header : false;
 const pageHeaderImage = page?.featured_image ? resolveImageSrc(page.featured_image) : '';
 
@@ -337,6 +346,7 @@ function getBlockDomId(block: EditorEntry, collection: string, index: number) {
 							google_place_id={googleReviewsBlock.google_place_id}
 							google_business_query={googleReviewsBlock.google_business_query}
 							numero_recensioni={googleReviewsBlock.numero_recensioni}
+							min_rating={isContattiPage ? 3 : 1}
 							cta_label={googleReviewsBlock.cta_label}
 							cta_href={googleReviewsBlock.cta_href}
 						/>

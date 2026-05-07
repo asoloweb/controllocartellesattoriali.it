@@ -21,65 +21,6 @@ async function directusRequest(env, path, options = {}) {
 	return fetch(url, { ...options, headers });
 }
 
-async function getClienteRoleId(env) {
-	const response = await directusRequest(
-		env,
-		`/roles?filter[name][_eq]=cliente&limit=1&fields=id`
-	);
-	if (!response.ok) return null;
-	const payload = await response.json();
-	return payload?.data?.[0]?.id || null;
-}
-
-async function findUserByEmail(env, email) {
-	const response = await directusRequest(
-		env,
-		`/users?filter[email][_eq]=${encodeURIComponent(email)}&limit=1&fields=id,role`
-	);
-	if (!response.ok) return null;
-	const payload = await response.json();
-	return payload?.data?.[0] || null;
-}
-
-async function createUser(env, { email, password, nomeCognome, roleId }) {
-	const body = {
-		email,
-		password,
-		status: 'active',
-	};
-	if (nomeCognome) {
-		const parts = nomeCognome.split(' ');
-		body.first_name = parts[0];
-		if (parts.length > 1) {
-			body.last_name = parts.slice(1).join(' ');
-		}
-	}
-	if (roleId) body.role = roleId;
-
-	const response = await directusRequest(env, '/users', {
-		method: 'POST',
-		body: JSON.stringify(body),
-	});
-	if (!response.ok) {
-		const detail = await response.text();
-		return { error: 'User creation failed', status: response.status, detail };
-	}
-	const text = await response.text();
-	if (!text) return null;
-	let payload = null;
-	try {
-		payload = JSON.parse(text);
-	} catch {
-		return { error: 'User creation failed', status: response.status, detail: text };
-	}
-	return payload?.data || null;
-}
-
-function generatePraticaId() {
-	const raw = crypto.randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase();
-	return `PRAT-${raw}`;
-}
-
 function parseRawBody(rawText, contentType) {
 	if (!rawText) return {};
 	const lowerType = (contentType || '').toLowerCase();
@@ -131,70 +72,44 @@ async function handleRequest(request, env) {
 		}
 	}
 
-	let email = String(body?.email || '').trim().toLowerCase();
-	let password = String(body?.password || '').trim();
+	const email = String(body?.email || '').trim().toLowerCase();
+	const telefono = String(body?.telefono || '').trim();
+	const privacy = String(body?.privacy || '').trim().toLowerCase();
 
-	if (!email || !password) {
+	if (!email || !telefono || privacy !== 'si') {
 		return jsonResponse(400, {
-			error: 'Missing email or password',
+			error: 'Missing required fields',
 			received: {
 				content_type: contentType,
 				content_length: request.headers.get('content-length') || '',
 				body_length: rawText.length,
 				has_email: !!body?.email,
-				has_password: !!body?.password,
+				has_telefono: !!body?.telefono,
+				has_privacy: !!body?.privacy,
 				request_url: requestUrl,
 				query: urlParams.toString(),
 			},
 		});
 	}
 
-	const nomeCognome = String(body?.nome_cognome || '').trim();
-	const contatto = String(body?.contatto || '').trim();
-	const statoPratica = 'in_attesa';
-	const idPratica = generatePraticaId();
+	const contatto =
+		String(body?.contatto || '').trim() ||
+		[`Email: ${email}`, `Telefono: ${telefono}`, 'Consenso privacy: si'].join('\n');
 
-	const roleId = await getClienteRoleId(env);
-	let user = await findUserByEmail(env, email);
-
-	if (!user) {
-		const created = await createUser(env, { email, password, nomeCognome, roleId });
-		if (created?.id) {
-			user = created;
-		} else {
-			return jsonResponse(500, created || { error: 'User creation failed' });
-		}
-	} else if (roleId && user.role !== roleId) {
-		await directusRequest(env, `/users/${user.id}`, {
-			method: 'PATCH',
-			body: JSON.stringify({ role: roleId }),
-		});
-	}
-
-	const praticaPayload = {
-		contatto,
-		id_pratica: idPratica,
-		stato_pratica: statoPratica,
-		cliente: user.id,
-		status: 'published',
-	};
-
-	const praticaResponse = await directusRequest(env, '/items/pratiche', {
+	const richiestaResponse = await directusRequest(env, '/items/richieste', {
 		method: 'POST',
-		body: JSON.stringify(praticaPayload),
+		body: JSON.stringify({ contatto }),
 	});
 
-	if (!praticaResponse.ok) {
-		const err = await praticaResponse.text();
-		return jsonResponse(500, { error: 'Pratica creation failed', detail: err });
+	if (!richiestaResponse.ok) {
+		const err = await richiestaResponse.text();
+		return jsonResponse(500, { error: 'Richiesta creation failed', detail: err });
 	}
 
-	const praticaData = await praticaResponse.json();
+	const richiestaData = await richiestaResponse.json();
 
 	return jsonResponse(200, {
-		pratica_id: praticaData?.data?.id,
-		id_pratica: idPratica,
-		user_id: user.id,
+		richiesta_id: richiestaData?.data?.id,
 	});
 }
 

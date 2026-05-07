@@ -36,6 +36,7 @@ interface Props {
 	google_place_id?: string;
 	google_business_query?: string;
 	numero_recensioni?: number;
+	min_rating?: number;
 	cta_label?: string;
 	cta_href?: string;
 }
@@ -46,12 +47,14 @@ const {
 	google_place_id = '',
 	google_business_query = 'Studio Legale Portantiolo & Partners',
 	numero_recensioni = 6,
+	min_rating = 1,
 	cta_label = 'Vedi tutte su Google',
 	cta_href = '',
 } = Astro.props;
 
 const apiKey = import.meta.env.GOOGLE_MAPS_API_KEY || import.meta.env.GOOGLE_PLACES_API_KEY;
 const maxReviews = Math.min(10, Math.max(1, Number(numero_recensioni) || 6));
+const minRating = Math.min(5, Math.max(1, Number(min_rating) || 1));
 const placeQuery = String(
 	google_business_query || import.meta.env.GOOGLE_BUSINESS_QUERY || 'Studio Legale Portantiolo & Partners'
 ).trim();
@@ -161,13 +164,15 @@ if (apiKey) {
 			const cachedReviews = cacheStore.reviewsByPlaceId.get(placeId);
 			if (cachedReviews && cachedReviews.expiresAt > Date.now()) {
 				placeDetails = cachedReviews.placeDetails;
-				reviews = cachedReviews.reviews.slice(0, maxReviews);
+				reviews = cachedReviews.reviews
+					.filter((review) => Number(review.rating || 0) >= minRating)
+					.slice(0, maxReviews);
 			} else {
 				placeDetails = await fetchPlaceDetails(placeId);
 				const sortedReviews = Array.isArray(placeDetails?.reviews)
 					? [...placeDetails.reviews].sort((a, b) => (b.time || 0) - (a.time || 0))
 					: [];
-				reviews = sortedReviews.slice(0, maxReviews);
+				reviews = sortedReviews.filter((review) => Number(review.rating || 0) >= minRating).slice(0, maxReviews);
 				if (placeDetails) {
 					cacheStore.reviewsByPlaceId.set(placeId, {
 						placeDetails,

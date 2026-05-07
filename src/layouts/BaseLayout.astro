@@ -151,13 +151,6 @@ const organizationJsonLd = JSON.stringify(
 		)}
 		<!-- Google tag (gtag.js) --> <script async src="https://www.googletagmanager.com/gtag/js?id=AW-10932709528"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'AW-10932709528'); </script>
 
-		<script type="text/javascript">
-			(function(c,l,a,r,i,t,y){
-				c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-				t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-				y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-			})(window, document, "clarity", "script", "vqwzxpkr6z");
-		</script>
 	</head>
 	<body>
 		<Header />
@@ -168,6 +161,29 @@ const organizationJsonLd = JSON.stringify(
 		<script defer src="/vendor/aos.js"></script>
 		<script defer src="/scripts/aos-init.js"></script>
 		<script defer src="/scripts/swiper-init.js"></script>
+		<script>
+			document.addEventListener('click', (event) => {
+				const target = event.target;
+				if (!(target instanceof Element)) return;
+
+				const telLink = target.closest('a[href^="tel:"]');
+				if (telLink instanceof HTMLAnchorElement && typeof window.gtag === 'function') {
+					window.gtag('event', 'click_to_call', {
+						contact_type: 'phone',
+						link_target: telLink.getAttribute('href') || '',
+					});
+					return;
+				}
+
+				const mailtoLink = target.closest('a[href^="mailto:"]');
+				if (mailtoLink instanceof HTMLAnchorElement && typeof window.gtag === 'function') {
+					window.gtag('event', 'click_to_email', {
+						contact_type: 'email',
+						link_target: mailtoLink.getAttribute('href') || '',
+					});
+				}
+			});
+		</script>
 		<slot name="scripts" />
 	</body>
 </html>

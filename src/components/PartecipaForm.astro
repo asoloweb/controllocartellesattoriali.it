@@ -96,7 +96,20 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 				}
 
 				if (window.umami && typeof window.umami.track === 'function') {
-					window.umami.track('partecipa_form_submit', { email, telefono });
+					window.umami.track('partecipa_form_submit', {
+						email,
+						telefono,
+						privacy,
+						source: 'partecipa_form',
+						submitted_at: new Date().toISOString(),
+					});
+				}
+
+				if (typeof window.gtag === 'function') {
+					window.gtag('event', 'generate_lead', {
+						form_name: 'partecipa_form',
+						lead_type: 'contact_request',
+					});
 				}
 
 				form.reset();

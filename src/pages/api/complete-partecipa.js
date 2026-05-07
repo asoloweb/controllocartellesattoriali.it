@@ -121,12 +121,14 @@ async function handleRequest(request, env) {
 	});
 }
 
-export async function POST({ request }) {
-	const env = import.meta.env || process.env;
+export async function POST({ request, locals }) {
+	const runtimeEnv = locals?.runtime?.env;
+	const env = runtimeEnv || import.meta.env || process.env;
 	return handleRequest(request, env);
 }
 
-export async function GET({ request }) {
-	const env = import.meta.env || process.env;
+export async function GET({ request, locals }) {
+	const runtimeEnv = locals?.runtime?.env;
+	const env = runtimeEnv || import.meta.env || process.env;
 	return handleRequest(request, env);
 }

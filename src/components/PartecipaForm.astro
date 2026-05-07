@@ -44,6 +44,22 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 </section>
 
 <script type="module">
+	const gtagReportConversion = (url) => {
+		if (typeof window.gtag !== 'function') return false;
+		const callback = () => {
+			if (typeof url !== 'undefined') {
+				window.location = url;
+			}
+		};
+		window.gtag('event', 'conversion', {
+			send_to: 'AW-10932709528/eZrDCM_fkKkcEJjRj90o',
+			value: 1.0,
+			currency: 'EUR',
+			event_callback: callback,
+		});
+		return false;
+	};
+
 	const initPartecipaForm = () => {
 		const form = document.querySelector('.contact_form_form');
 		if (!(form instanceof HTMLFormElement)) return;
@@ -110,6 +126,7 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 						form_name: 'partecipa_form',
 						lead_type: 'contact_request',
 					});
+					gtagReportConversion();
 				}
 
 				form.reset();

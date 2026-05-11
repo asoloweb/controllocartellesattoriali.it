@@ -106,10 +106,19 @@ function getItemPage(item: MenuItem): PageItem | null {
 }
 
 function getItemHref(item: MenuItem) {
-	if (item.custom_href) return item.custom_href;
+	if (item.custom_href) return normalizeHref(item.custom_href);
 	const page = getItemPage(item);
 	if (!page?.slug || page.slug === 'home') return '/';
 	return `/${page.slug}`;
+}
+
+function normalizeHref(href: string) {
+	const raw = String(href || '').trim();
+	if (!raw) return '/';
+	if (raw.startsWith('#')) return raw;
+	if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+	if (raw.startsWith('mailto:') || raw.startsWith('tel:')) return raw;
+	return raw.startsWith('/') ? raw : `/${raw}`;
 }
 
 function normalizePath(path: string) {

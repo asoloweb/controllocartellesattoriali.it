@@ -8,9 +8,10 @@ export interface Props {
 	title: string;
 	seoTitle?: string;
 	seoDescription?: string;
+	canonicalPath?: string;
 }
 
-const { title, seoTitle, seoDescription } = Astro.props;
+const { title, seoTitle, seoDescription, canonicalPath } = Astro.props;
 const resolvedTitle = seoTitle || title;
 const shouldLoadThirdPartyScripts = !import.meta.env.DEV;
 const siteUrl = (import.meta.env.PUBLIC_SITE_URL || 'https://controllocartellesattoriali.it').replace(/\/+$/, '');
@@ -86,6 +87,14 @@ function getFaviconMimeType(src: string) {
 }
 
 const faviconMimeType = getFaviconMimeType(logoLightSrc);
+const canonicalUrl = (() => {
+	const path = canonicalPath || Astro.url?.pathname || '/';
+	try {
+		return new URL(path, siteUrl).toString();
+	} catch {
+		return siteUrl;
+	}
+})();
 
 const organizationId = `${siteUrl}/#organization`;
 const legalServiceId = `${siteUrl}/#legalservice`;
@@ -129,7 +138,7 @@ const organizationJsonLd = JSON.stringify(
 );
 ---
 
-<html lang="en">
+<html lang="it">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type={faviconMimeType} href={logoLightSrc} />
@@ -138,6 +147,9 @@ const organizationJsonLd = JSON.stringify(
 		<meta name="viewport" content="width=device-width" />
 		<meta name="theme-color" content="#000000" />
 		<meta name="generator" content={Astro.generator} />
+		<link rel="canonical" href={canonicalUrl} />
+		<link rel="alternate" hreflang="it-IT" href={canonicalUrl} />
+		<link rel="alternate" hreflang="x-default" href={canonicalUrl} />
 		<title>{resolvedTitle}</title>
 		{seoDescription && <meta name="description" content={seoDescription} />}
 		<script type="application/ld+json" set:html={organizationJsonLd}></script>

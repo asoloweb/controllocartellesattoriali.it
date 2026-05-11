@@ -1,16 +1,3 @@
 ---
-const target = '/';
+return Astro.redirect('/', 301);
 ---
-
-<!doctype html>
-<html lang="it">
-	<head>
-		<meta charset="utf-8" />
-		<meta http-equiv="refresh" content={`0; url=${target}`} />
-		<link rel="canonical" href={target} />
-		<title>Redirect</title>
-	</head>
-	<body>
-		<p>Redirecting…</p>
-	</body>
-</html>

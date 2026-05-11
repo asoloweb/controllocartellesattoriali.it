@@ -22,6 +22,42 @@ async function directusRequest(env, path, options = {}) {
 	return fetch(url, { ...options, headers });
 }
 
+function getRomeTimestamp() {
+	return new Intl.DateTimeFormat('it-IT', {
+		timeZone: 'Europe/Rome',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit',
+		hour12: false,
+	}).format(new Date());
+}
+
+function getUtcIsoTimestamp() {
+	return new Date().toISOString();
+}
+
+async function findExistingByIdempotencyKey(env, idempotencyKey) {
+	if (!idempotencyKey) return null;
+
+	const query = new URLSearchParams({
+		'filter[contatto][_contains]': `ID richiesta: ${idempotencyKey}`,
+		fields: 'id',
+		limit: '1',
+		sort: '-id',
+	});
+
+	const response = await directusRequest(env, `/items/richieste?${query.toString()}`, {
+		method: 'GET',
+	});
+
+	if (!response.ok) return null;
+	const data = await response.json().catch(() => null);
+	return data?.data?.[0]?.id || null;
+}
+
 function parseRawBody(rawText, contentType) {
 	if (!rawText) return {};
 	const lowerType = (contentType || '').toLowerCase();
@@ -76,6 +112,7 @@ async function handleRequest(request, env) {
 	const email = String(body?.email || '').trim().toLowerCase();
 	const telefono = String(body?.telefono || '').trim();
 	const privacy = String(body?.privacy || '').trim().toLowerCase();
+	const idempotencyKey = String(body?.idempotency_key || request.headers.get('x-idempotency-key') || '').trim();
 
 	if (!email || !telefono || privacy !== 'si') {
 		return jsonResponse(400, {
@@ -93,19 +130,38 @@ async function handleRequest(request, env) {
 		});
 	}
 
-	const contatto =
+	const contattoBase =
 		String(body?.contatto || '').trim() ||
-		[`Email: ${email}`, `Telefono: ${telefono}`, 'Consenso privacy: si'].join('\n');
-	const dataRichiesta = new Date().toISOString();
+		[
+			`Email: ${email}`,
+			`Telefono: ${telefono}`,
+			'Consenso privacy: si',
+			`Data richiesta: ${getRomeTimestamp()} (Europe/Rome)`,
+		].join('\n');
+	const contattoWithDate = /(^|\n)Data richiesta:/.test(contattoBase)
+		? contattoBase
+		: `${contattoBase}\nData richiesta: ${getRomeTimestamp()} (Europe/Rome)`;
+	const contatto = idempotencyKey
+		? contattoWithDate.includes(`ID richiesta: ${idempotencyKey}`)
+			? contattoWithDate
+			: `${contattoWithDate}\nID richiesta: ${idempotencyKey}`
+		: contattoWithDate;
+
+	const existingId = await findExistingByIdempotencyKey(env, idempotencyKey);
+	if (existingId) {
+		return jsonResponse(200, { richiesta_id: existingId, deduplicated: true });
+	}
+
+	const dataRichiesta = getUtcIsoTimestamp();
 
 	const richiestaResponse = await directusRequest(env, '/items/richieste', {
 		method: 'POST',
 		body: JSON.stringify({
+			contatto,
 			email,
 			telefono,
 			privacy,
 			data_richiesta: dataRichiesta,
-			contatto,
 		}),
 	});
 

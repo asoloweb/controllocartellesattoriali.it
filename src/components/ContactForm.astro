@@ -56,13 +56,31 @@ const webhookUrl = import.meta.env.PUBLIC_DIRECTUS_WEBHOOK_RICHIESTE
 
 <script type="module">
 	const form = document.querySelector('.contact_form_form');
-	if (form instanceof HTMLFormElement) {
+	if (form instanceof HTMLFormElement && form.dataset.submitHandlerBound !== 'true') {
+		form.dataset.submitHandlerBound = 'true';
+
 		const statusEl = form.querySelector('.contact_form_status');
 		const submitButton = form.querySelector('.contact_form_submit');
 		const webhookUrl = form.dataset.webhookUrl;
+		let isSubmitting = false;
+		const formatRomeDateTime = () =>
+			new Intl.DateTimeFormat('it-IT', {
+				timeZone: 'Europe/Rome',
+				year: 'numeric',
+				month: '2-digit',
+				day: '2-digit',
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit',
+				hour12: false,
+			}).format(new Date());
+
+		const submissionFingerprint = (email, referente, ragioneSociale) =>
+			`contatti:${email}:${referente.toLowerCase()}:${ragioneSociale.toLowerCase()}`;
 
 		form.addEventListener('submit', async (event) => {
 			event.preventDefault();
+			if (isSubmitting) return;
 			if (!webhookUrl) {
 				if (statusEl) {
 					statusEl.textContent =
@@ -71,6 +89,33 @@ const webhookUrl = import.meta.env.PUBLIC_DIRECTUS_WEBHOOK_RICHIESTE
 				}
 				return;
 			}
+
+			const formData = new FormData(form);
+			const ragioneSociale = String(formData.get('ragione_sociale') || '').trim();
+			const email = String(formData.get('email') || '').trim().toLowerCase();
+			const telefono = String(formData.get('telefono') || '').trim();
+			const referente = String(formData.get('referente') || '').trim();
+			const messaggio = String(formData.get('messaggio') || '').trim();
+
+			if (!ragioneSociale || !email || !referente || !messaggio) {
+				if (statusEl) {
+					statusEl.textContent = 'Compila tutti i campi obbligatori.';
+					statusEl.dataset.state = 'error';
+				}
+				return;
+			}
+
+			const duplicateKey = submissionFingerprint(email, referente, ragioneSociale);
+			const lastSubmitAt = Number(sessionStorage.getItem(duplicateKey) || '0');
+			if (Date.now() - lastSubmitAt < 120000) {
+				if (statusEl) {
+					statusEl.textContent = 'Richiesta gia inviata da poco. Attendi qualche minuto.';
+					statusEl.dataset.state = 'success';
+				}
+				return;
+			}
+
+			isSubmitting = true;
 
 			if (submitButton instanceof HTMLButtonElement) {
 				submitButton.disabled = true;
@@ -81,12 +126,7 @@ const webhookUrl = import.meta.env.PUBLIC_DIRECTUS_WEBHOOK_RICHIESTE
 			}
 
 			try {
-				const formData = new FormData(form);
-				const ragioneSociale = String(formData.get('ragione_sociale') || '').trim();
-				const email = String(formData.get('email') || '').trim();
-				const telefono = String(formData.get('telefono') || '').trim();
-				const referente = String(formData.get('referente') || '').trim();
-				const messaggio = String(formData.get('messaggio') || '').trim();
+				const idempotencyKey = crypto.randomUUID();
 
 				const contattoLines = [
 					`Ragione sociale: ${ragioneSociale}`,
@@ -94,6 +134,8 @@ const webhookUrl = import.meta.env.PUBLIC_DIRECTUS_WEBHOOK_RICHIESTE
 					`Telefono: ${telefono || '-'}`,
 					`Referente: ${referente}`,
 					`Messaggio: ${messaggio}`,
+					`Data richiesta: ${formatRomeDateTime()} (Europe/Rome)`,
+					`ID richiesta: ${idempotencyKey}`,
 				];
 				const contatto = contattoLines.join('\n');
 
@@ -110,9 +152,11 @@ const webhookUrl = import.meta.env.PUBLIC_DIRECTUS_WEBHOOK_RICHIESTE
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
+						'X-Idempotency-Key': idempotencyKey,
 					},
 					body: JSON.stringify({
 						...payload,
+						idempotency_key: idempotencyKey,
 						data: payload,
 						payload,
 						body: payload,
@@ -124,6 +168,7 @@ const webhookUrl = import.meta.env.PUBLIC_DIRECTUS_WEBHOOK_RICHIESTE
 				}
 
 				form.reset();
+				sessionStorage.setItem(duplicateKey, String(Date.now()));
 				if (statusEl) {
 					statusEl.textContent = 'Richiesta inviata con successo.';
 					statusEl.dataset.state = 'success';
@@ -135,6 +180,7 @@ const webhookUrl = import.meta.env.PUBLIC_DIRECTUS_WEBHOOK_RICHIESTE
 					statusEl.dataset.state = 'error';
 				}
 			} finally {
+				isSubmitting = false;
 				if (submitButton instanceof HTMLButtonElement) {
 					submitButton.disabled = false;
 				}

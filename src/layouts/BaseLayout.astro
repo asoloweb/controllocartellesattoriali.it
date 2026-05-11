@@ -145,15 +145,45 @@ const organizationJsonLd = JSON.stringify(
 		<link rel="stylesheet" href="/vendor/swiper-bundle.min.css" />
 		{shouldLoadThirdPartyScripts && (
 			<>
-				<script defer src={umamiScriptSrc} data-website-id={umamiWebsiteId}></script>
 				<script src={`https://consent.cookiefirst.com/sites/${cookieFirstSiteId}/consent.js`}></script>
 				<script
 					type="text/javascript"
 					src="https://embeds.iubenda.com/widgets/517fe488-4282-47d5-8204-01cd7d915a30.js"
 				></script>
+				<script is:inline define:vars={{ umamiScriptSrc, umamiWebsiteId }}>
+					const host = window.location.hostname;
+					const isLocalhost =
+						host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local');
+
+					if (!isLocalhost) {
+						const umamiScript = document.createElement('script');
+						umamiScript.defer = true;
+						umamiScript.src = umamiScriptSrc;
+						umamiScript.setAttribute('data-website-id', umamiWebsiteId);
+						document.head.appendChild(umamiScript);
+					}
+				</script>
 			</>
 		)}
-		<!-- Google tag (gtag.js) --> <script async src="https://www.googletagmanager.com/gtag/js?id=AW-10932709528"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'AW-10932709528'); </script>
+		<script is:inline>
+			const host = window.location.hostname;
+			const isLocalhost =
+				host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local');
+
+			if (!isLocalhost) {
+				const gtagScript = document.createElement('script');
+				gtagScript.async = true;
+				gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=AW-10932709528';
+				document.head.appendChild(gtagScript);
+
+				window.dataLayer = window.dataLayer || [];
+				window.gtag = function () {
+					window.dataLayer.push(arguments);
+				};
+				window.gtag('js', new Date());
+				window.gtag('config', 'AW-10932709528');
+			}
+		</script>
 
 	</head>
 	<body>

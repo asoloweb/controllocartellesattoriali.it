@@ -63,12 +63,55 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 	const initPartecipaForm = () => {
 		const form = document.querySelector('.contact_form_form');
 		if (!(form instanceof HTMLFormElement)) return;
+		if (form.dataset.submitHandlerBound === 'true') return;
+		form.dataset.submitHandlerBound = 'true';
 
 		const statusEl = form.querySelector('.contact_form_status');
 		const submitButton = form.querySelector('.contact_form_submit');
+		let isSubmitting = false;
+		const formatRomeDateTime = () =>
+			new Intl.DateTimeFormat('it-IT', {
+				timeZone: 'Europe/Rome',
+				year: 'numeric',
+				month: '2-digit',
+				day: '2-digit',
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit',
+				hour12: false,
+			}).format(new Date());
+
+		const submissionFingerprint = (email, telefono) =>
+			`partecipa:${email}:${telefono.replace(/\s+/g, '')}`;
 
 		form.addEventListener('submit', async (event) => {
 			event.preventDefault();
+			if (isSubmitting) return;
+
+			const formData = new FormData(form);
+			const email = String(formData.get('email') || '').trim().toLowerCase();
+			const telefono = String(formData.get('telefono') || '').trim();
+			const privacy = formData.get('privacy') ? 'si' : 'no';
+
+			if (!email || !telefono || privacy !== 'si') {
+				if (statusEl) {
+					statusEl.textContent = 'Compila tutti i campi obbligatori e accetta la privacy policy.';
+					statusEl.dataset.state = 'error';
+				}
+				return;
+			}
+
+			const duplicateKey = submissionFingerprint(email, telefono);
+			const lastSubmitAt = Number(sessionStorage.getItem(duplicateKey) || '0');
+			if (Date.now() - lastSubmitAt < 120000) {
+				if (statusEl) {
+					statusEl.textContent = 'Richiesta gia inviata da poco. Attendi qualche minuto.';
+					statusEl.dataset.state = 'success';
+				}
+				return;
+			}
+
+			isSubmitting = true;
 			if (submitButton instanceof HTMLButtonElement) {
 				submitButton.disabled = true;
 			}
@@ -78,26 +121,23 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 			}
 
 			try {
-				const formData = new FormData(form);
-				const email = String(formData.get('email') || '').trim().toLowerCase();
-				const telefono = String(formData.get('telefono') || '').trim();
-				const privacy = formData.get('privacy') ? 'si' : 'no';
-
-				if (!email || !telefono || privacy !== 'si') {
-					throw new Error('Dati non validi');
-				}
+				const idempotencyKey = crypto.randomUUID();
 
 				const contatto = [
 					`Email: ${email}`,
 					`Telefono: ${telefono}`,
 					'Consenso privacy: si',
-					`Data richiesta: ${new Date().toISOString()}`,
+					`Data richiesta: ${formatRomeDateTime()} (Europe/Rome)`,
+					`ID richiesta: ${idempotencyKey}`,
 				].join('\n');
 
 				const response = await fetch('/api/complete-partecipa', {
 					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ email, telefono, privacy, contatto }),
+					headers: {
+						'Content-Type': 'application/json',
+						'X-Idempotency-Key': idempotencyKey,
+					},
+					body: JSON.stringify({ email, telefono, privacy, contatto, idempotency_key: idempotencyKey }),
 				});
 
 				if (!response.ok) {
@@ -130,6 +170,7 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 				}
 
 				form.reset();
+				sessionStorage.setItem(duplicateKey, String(Date.now()));
 				if (statusEl) {
 					statusEl.textContent = 'Richiesta inviata con successo. Ti contatteremo al più presto.';
 					statusEl.dataset.state = 'success';
@@ -142,6 +183,7 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 					statusEl.dataset.state = 'error';
 				}
 			} finally {
+				isSubmitting = false;
 				if (submitButton instanceof HTMLButtonElement) {
 					submitButton.disabled = false;
 				}

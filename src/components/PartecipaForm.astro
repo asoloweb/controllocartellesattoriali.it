@@ -84,6 +84,16 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 		const submissionFingerprint = (email, telefono) =>
 			`partecipa:${email}:${telefono.replace(/\s+/g, '')}`;
 
+		const getAttributionParams = () => {
+			const params = new URLSearchParams(window.location.search || '');
+			const fromSession = (key) => sessionStorage.getItem(`attribution_${key}`) || '';
+			return {
+				gclid: params.get('gclid') || fromSession('gclid'),
+				gbraid: params.get('gbraid') || fromSession('gbraid'),
+				wbraid: params.get('wbraid') || fromSession('wbraid'),
+			};
+		};
+
 		form.addEventListener('submit', async (event) => {
 			event.preventDefault();
 			if (isSubmitting) return;
@@ -122,6 +132,7 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 
 			try {
 				const idempotencyKey = crypto.randomUUID();
+				const attribution = getAttributionParams();
 
 				const contatto = [
 					`Email: ${email}`,
@@ -137,7 +148,16 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 						'Content-Type': 'application/json',
 						'X-Idempotency-Key': idempotencyKey,
 					},
-					body: JSON.stringify({ email, telefono, privacy, contatto, idempotency_key: idempotencyKey }),
+					body: JSON.stringify({
+						email,
+						telefono,
+						privacy,
+						contatto,
+						idempotency_key: idempotencyKey,
+						gclid: attribution.gclid,
+						gbraid: attribution.gbraid,
+						wbraid: attribution.wbraid,
+					}),
 				});
 
 				if (!response.ok) {

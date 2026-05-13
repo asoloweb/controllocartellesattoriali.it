@@ -39,6 +39,52 @@ function getUtcIsoTimestamp() {
 	return new Date().toISOString();
 }
 
+function extractDigits(value) {
+	return String(value || '').replace(/\D+/g, '');
+}
+
+async function sendGoogleAdsConversionFallback(env, payload = {}) {
+	const conversionId = extractDigits(env.GOOGLE_ADS_CONVERSION_ID || '10932709528');
+	const conversionLabel = String(env.GOOGLE_ADS_CONVERSION_LABEL || 'eZrDCM_fkKkcEJjRj90o').trim();
+
+	if (!conversionId || !conversionLabel) {
+		return { attempted: false, reason: 'missing_conversion_config' };
+	}
+
+	const params = new URLSearchParams({
+		label: conversionLabel,
+		guid: 'ON',
+		script: '0',
+		value: '1.0',
+		currency_code: 'EUR',
+	});
+
+	const gclid = String(payload.gclid || '').trim();
+	const gbraid = String(payload.gbraid || '').trim();
+	const wbraid = String(payload.wbraid || '').trim();
+
+	if (gclid) params.set('gclid', gclid);
+	if (gbraid) params.set('gbraid', gbraid);
+	if (wbraid) params.set('wbraid', wbraid);
+
+	const endpoint = `https://www.googleadservices.com/pagead/conversion/${conversionId}/?${params.toString()}`;
+
+	try {
+		const response = await fetch(endpoint, { method: 'GET' });
+		return {
+			attempted: true,
+			ok: response.ok,
+			status: response.status,
+		};
+	} catch (error) {
+		return {
+			attempted: true,
+			ok: false,
+			error: error instanceof Error ? error.message : String(error),
+		};
+	}
+}
+
 async function findExistingByIdempotencyKey(env, idempotencyKey) {
 	if (!idempotencyKey) return null;
 
@@ -68,6 +114,9 @@ export async function onRequestPost({ request, env }) {
 	const telefono = String(body?.telefono || '').trim();
 	const privacy = String(body?.privacy || '').trim().toLowerCase();
 	const idempotencyKey = String(body?.idempotency_key || request.headers.get('x-idempotency-key') || '').trim();
+	const gclid = String(body?.gclid || '').trim();
+	const gbraid = String(body?.gbraid || '').trim();
+	const wbraid = String(body?.wbraid || '').trim();
 	if (!email || !telefono || privacy !== 'si') {
 		return jsonResponse(400, { error: 'Missing required fields' });
 	}
@@ -114,7 +163,27 @@ export async function onRequestPost({ request, env }) {
 
 	const richiestaData = await richiestaResponse.json();
 
+	const adsFallback = await sendGoogleAdsConversionFallback(env, {
+		gclid,
+		gbraid,
+		wbraid,
+	});
+
+	if (adsFallback.attempted) {
+		console.info('Google Ads fallback conversion result', {
+			richiesta_id: richiestaData?.data?.id,
+			status: adsFallback.status,
+			ok: adsFallback.ok,
+			has_gclid: !!gclid,
+			has_gbraid: !!gbraid,
+			has_wbraid: !!wbraid,
+			error: adsFallback.error || null,
+		});
+	}
+
 	return jsonResponse(200, {
 		richiesta_id: richiestaData?.data?.id,
+		ads_fallback_attempted: !!adsFallback.attempted,
+		ads_fallback_ok: !!adsFallback.ok,
 	});
 }

@@ -32,32 +32,32 @@ type HeroBlockItem = {
 	background_color?: string;
 };
 
-async function fetchPartecipaPage() {
+async function fetchLeggeTrePage() {
 	const url = directusItemsUrl('pages');
 	url.searchParams.set(
 		'fields',
 		'*,slug.*,editor.item.*,editor.item.slider.*,editor.item.slider.slides.item.*,editor.item.card.single_card_id.*,editor.item.card.single_card_id.link.id,editor.item.card.single_card_id.link.slug,editor.item.card.single_card_id.link.title,editor.item.accordion.single_accordion_id.*'
 	);
 	url.searchParams.set('filter[status][_eq]', 'published');
-	url.searchParams.set('filter[slug][_eq]', 'partecipa');
+	url.searchParams.set('filter[slug][_eq]', 'legge-3');
 
 	const response = await fetch(url);
 	const data = await response.json();
 	return (data?.data?.[0] as Page | undefined) ?? null;
 }
 
-const page: Page | null = await fetchPartecipaPage();
+const page: Page | null = await fetchLeggeTrePage();
 const pageTitle = page?.title || page?.Titolo || '';
 const pageDescription = page?.description || '';
 
-const homeHero14: HeroBlockItem = {
-	id: 14,
-	titolo: 'Analisi professionale della tua <span>cartella esattoriale</span>',
-	sottotitolo:
-		"Invia la tua richiesta di contatto: analizzeremo nel dettaglio la tua situazione debitoria e ti proporremo le soluzioni piu adatte al tuo caso.",
-	paragrafo: '',
-	label: 'Partecipa >',
-	href: '/partecipa',
+const leggeTreHero: HeroBlockItem = {
+	id: 15,
+	titolo: 'Comincia da zero senza pensieri',
+	sottotitolo: 'Grazie alla Legge 3/2012 niente piu problemi!',
+	paragrafo:
+		'Cancella il tuo sovraindebitamento\nSalva la tua casa e la tua famiglia\nNon avere lo stipendio o altri bene pignorati',
+	label: 'Legge 3 >',
+	href: '/legge-3',
 	immagine: 'f86d89a0-a2a1-4771-8536-9e8109140cd3',
 	inverti: false,
 	background_color: '',
@@ -76,28 +76,28 @@ const showPageHeader = page ? !page.hide_page_header : false;
 ---
 
 <BaseLayout
-	title={page?.title || page?.Titolo || 'Partecipa'}
+	title={page?.title || page?.Titolo || 'Legge 3'}
 	seoTitle={page?.seo_title}
 	seoDescription={page?.seo_desc}
 >
 	{page && (
 		<div class="partecipa_preheader">
 			<div class="partecipa_preheader_inner">
-				<section id="block-hero-block-14-2" class="editor_block editor_block_hero_block">
+				<section id="block-hero-block-legge-3" class="editor_block editor_block_hero_block">
 					<HeroBlock
-						item={String(homeHero14.id ?? '14')}
-						titolo={homeHero14.titolo}
-						sottotitolo={homeHero14.sottotitolo}
-						paragrafo={homeHero14.paragrafo}
-						label={homeHero14.label}
-						href={homeHero14.href}
-						immagine={homeHero14.immagine}
-						inverti={homeHero14.inverti}
-						background_color={homeHero14.background_color}
+						item={String(leggeTreHero.id ?? '15')}
+						titolo={leggeTreHero.titolo}
+						sottotitolo={leggeTreHero.sottotitolo}
+						paragrafo={leggeTreHero.paragrafo}
+						label={leggeTreHero.label}
+						href={leggeTreHero.href}
+						immagine={leggeTreHero.immagine}
+						inverti={leggeTreHero.inverti}
+						background_color={leggeTreHero.background_color}
 					/>
 				</section>
 				<div class="partecipa_preheader_form">
-					<PartecipaForm title="Richiedi una valutazione completa della tua situazione debitoria" />
+					<PartecipaForm title="Richiedi una valutazione per accedere alla procedura Legge 3" />
 				</div>
 			</div>
 		</div>
@@ -122,12 +122,37 @@ const showPageHeader = page ? !page.hide_page_header : false;
 		</div>
 	)}
 
-	<PageContent
-		page={page}
-		showHeader={false}
-		notFoundTitle="Pagina partecipa non trovata"
-		notFoundMessage="La pagina partecipa richiesta non esiste."
-	/>
+	<div class="legge3_page_content">
+		<PageContent
+			page={page}
+			showHeader={false}
+			notFoundTitle="Pagina Legge 3 non trovata"
+			notFoundMessage="La pagina Legge 3 richiesta non esiste."
+		/>
+	</div>
+
+	{page && (
+		<div class="partecipa_preheader partecipa_preheader_bottom">
+			<div class="partecipa_preheader_inner">
+				<section id="block-hero-block-legge-3-bottom" class="editor_block editor_block_hero_block">
+					<HeroBlock
+						item={String(leggeTreHero.id ?? '15')}
+						titolo={leggeTreHero.titolo}
+						sottotitolo={leggeTreHero.sottotitolo}
+						paragrafo={leggeTreHero.paragrafo}
+						label={leggeTreHero.label}
+						href={leggeTreHero.href}
+						immagine={leggeTreHero.immagine}
+						inverti={leggeTreHero.inverti}
+						background_color={leggeTreHero.background_color}
+					/>
+				</section>
+				<div class="partecipa_preheader_form">
+					<PartecipaForm title="Richiedi una valutazione per accedere alla procedura Legge 3" />
+				</div>
+			</div>
+		</div>
+	)}
 </BaseLayout>
 
 <style>
@@ -145,20 +170,36 @@ const showPageHeader = page ? !page.hide_page_header : false;
 		align-items: start;
 	}
 
-	#block-hero-block-14-2 {
+	#block-hero-block-legge-3 {
 		min-width: 0;
 	}
 
-
-
-	#block-hero-block-14-2 :global(.hero_block) {
+	#block-hero-block-legge-3 :global(.hero_block) {
 		margin: 0;
 		max-width: 100%;
 		flex-direction: column-reverse;
 	}
 
-	#block-hero-block-14-2 :global(.hero_button) {
+	#block-hero-block-legge-3 :global(.hero_button) {
 		display: none !important;
+	}
+
+	#block-hero-block-legge-3-bottom {
+		min-width: 0;
+	}
+
+	#block-hero-block-legge-3-bottom :global(.hero_block) {
+		margin: 0;
+		max-width: 100%;
+		flex-direction: column;
+	}
+
+	#block-hero-block-legge-3-bottom :global(.hero_button) {
+		display: none !important;
+	}
+
+	.partecipa_preheader_bottom {
+		margin-bottom: 100px;
 	}
 
 	.partecipa_preheader_form {
@@ -190,6 +231,13 @@ const showPageHeader = page ? !page.hide_page_header : false;
 		.partecipa_preheader_inner {
 			grid-template-columns: 1fr;
 		}
-
 	}
+
+	.legge3_page_content :global(.cards_card_media img) {
+		height: 150px;
+		width: auto;
+		max-width: 100%;
+		object-fit: contain;
+	}
+
 </style>

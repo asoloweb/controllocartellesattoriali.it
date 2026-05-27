@@ -154,6 +154,21 @@ function getMenuItemIdClass(item: MenuItem, index: number) {
 	const safe = raw.toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
 	return `menu_item_id_${safe}`;
 }
+
+const hasLeggeTreLink = menuItems.some((item) => normalizePath(getItemHref(item)) === '/legge-3');
+if (!hasLeggeTreLink) {
+	const targetIndex = menuItems.findIndex((item, index) => {
+		const href = normalizePath(getItemHref(item));
+		const title = getItemTitle(item, index).toLowerCase();
+		return href === '/partecipa' || title.includes('richiedi analisi');
+	});
+	const leggeTreItem = { id: 'legge-3-fallback', label: 'LEGGE 3', custom_href: '/legge-3' };
+	if (targetIndex >= 0) {
+		menuItems.splice(targetIndex, 0, leggeTreItem);
+	} else {
+		menuItems.push(leggeTreItem);
+	}
+}
 ---
 <div class="TopBar">
 	<a target="_blank" href="https://maps.app.goo.gl/Eg3tNKrkvrEuo1jz7">Strada Comunale Delle Corti, 61 - TREVISO  </a>

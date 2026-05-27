@@ -84,6 +84,12 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 		const submissionFingerprint = (email, telefono) =>
 			`partecipa:${email}:${telefono.replace(/\s+/g, '')}`;
 
+		const detectOrigin = () => {
+			const path = (window.location.pathname || '').toLowerCase();
+			if (path === '/legge-3' || path.startsWith('/legge-3/')) return 'Legge 3';
+			return 'Controllo cartelle Esattoriali';
+		};
+
 		const getAttributionParams = () => {
 			const params = new URLSearchParams(window.location.search || '');
 			const fromSession = (key) => sessionStorage.getItem(`attribution_${key}`) || '';
@@ -133,8 +139,10 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 			try {
 				const idempotencyKey = crypto.randomUUID();
 				const attribution = getAttributionParams();
+				const origine = detectOrigin();
 
 				const contatto = [
+					`ORIGINE: ${origine}`,
 					`Email: ${email}`,
 					`Telefono: ${telefono}`,
 					'Consenso privacy: si',
@@ -153,6 +161,7 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 						telefono,
 						privacy,
 						contatto,
+						origine,
 						idempotency_key: idempotencyKey,
 						gclid: attribution.gclid,
 						gbraid: attribution.gbraid,

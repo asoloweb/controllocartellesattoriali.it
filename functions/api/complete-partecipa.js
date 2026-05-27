@@ -113,6 +113,7 @@ export async function onRequestPost({ request, env }) {
 	const email = String(body?.email || '').trim().toLowerCase();
 	const telefono = String(body?.telefono || '').trim();
 	const privacy = String(body?.privacy || '').trim().toLowerCase();
+	const origine = String(body?.origine || '').trim();
 	const idempotencyKey = String(body?.idempotency_key || request.headers.get('x-idempotency-key') || '').trim();
 	const gclid = String(body?.gclid || '').trim();
 	const gbraid = String(body?.gbraid || '').trim();
@@ -124,14 +125,21 @@ export async function onRequestPost({ request, env }) {
 	const contattoBase =
 		String(body?.contatto || '').trim() ||
 		[
+			origine ? `ORIGINE: ${origine}` : '',
 			`Email: ${email}`,
 			`Telefono: ${telefono}`,
 			'Consenso privacy: si',
 			`Data richiesta: ${getRomeTimestamp()} (Europe/Rome)`,
-		].join('\n');
+		]
+			.filter(Boolean)
+			.join('\n');
+	const contattoWithOrigin =
+		origine && !/(^|\n)ORIGINE:/.test(contattoBase)
+			? `ORIGINE: ${origine}\n${contattoBase}`
+			: contattoBase;
 	const contattoWithDate = /(^|\n)Data richiesta:/.test(contattoBase)
-		? contattoBase
-		: `${contattoBase}\nData richiesta: ${getRomeTimestamp()} (Europe/Rome)`;
+		? contattoWithOrigin
+		: `${contattoWithOrigin}\nData richiesta: ${getRomeTimestamp()} (Europe/Rome)`;
 	const contatto = idempotencyKey
 		? contattoWithDate.includes(`ID richiesta: ${idempotencyKey}`)
 			? contattoWithDate

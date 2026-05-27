@@ -483,6 +483,10 @@ a {
   .menu_item {
     padding: 8px 12px;
   }
+
+  .TopBar a {
+    white-space: nowrap;
+  }
 }
 
 .TopBar .TopBarLogin {

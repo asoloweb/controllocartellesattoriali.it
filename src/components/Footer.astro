@@ -136,6 +136,13 @@ function getMenuItemIdClass(item: MenuItem, index: number, menuIndex: number) {
 	const safe = raw.toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
 	return `menu_item_id_${safe}`;
 }
+
+const hasLeggeTreLink = footerMenus.some((menu) =>
+	menu.items.some((item) => normalizeHref(getItemHref(item)).split('?')[0] === '/legge-3')
+);
+if (!hasLeggeTreLink) {
+	footerMenus[0]?.items.push({ id: 'legge-3-fallback', label: 'LEGGE 3', custom_href: '/legge-3' });
+}
 ---
 
 <footer class="site-footer">

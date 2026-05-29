@@ -1,5 +1,5 @@
 ---
-import { DIRECTUS_URL } from '../lib/directus';
+import { directusAssetUrl } from '../lib/directus';
 
 interface PageRef {
 	id?: number;
@@ -22,16 +22,17 @@ interface CardRelation {
 interface Props {
 	titolo?: string;
 	card?: CardRelation[] | SingleCard[];
+	compactMedia?: boolean;
 }
 
-const { titolo = '', card = [] } = Astro.props;
+const { titolo = '', card = [], compactMedia = false } = Astro.props;
 
-function resolveImageSrc(value: string | undefined) {
+function resolveImageSrc(value: string | undefined, compact = false) {
 	if (!value) return '';
-	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
-		return value;
+	if (compact) {
+		return directusAssetUrl(value, { format: 'webp', quality: 80 });
 	}
-	return `${DIRECTUS_URL}/assets/${value}`;
+	return directusAssetUrl(value, { format: 'webp', quality: 76, width: 640, height: 420, fit: 'cover' });
 }
 
 function normalizeCards(input: CardRelation[] | SingleCard[]) {
@@ -64,7 +65,7 @@ const cards = normalizeCards(card);
 ---
 
 {cards.length > 0 && (
-	<section class="cards_block" data-aos="fade-up" data-aos-duration="1500">
+	<section class={`cards_block ${compactMedia ? 'cards_block_compact_media' : ''}`} data-aos="fade-up" data-aos-duration="1500">
 		<div class="cards_block_inner">
 			{titolo && <h2 class="cards_block_title" set:html={titolo} />}
 
@@ -72,7 +73,7 @@ const cards = normalizeCards(card);
 				{cards.map((single) => {
 					const href = getCardHref(single);
 					const Tag = href ? 'a' : 'div';
-					const imageSrc = resolveImageSrc(single.immagine);
+					const imageSrc = resolveImageSrc(single.immagine, compactMedia);
 
 					return (
 						<Tag class="cards_card" href={href || undefined}>
@@ -158,6 +159,13 @@ const cards = normalizeCards(card);
 		margin: 4px 0 0;
 		font-size: 16px;
 		line-height: 22px;
+	}
+
+	.cards_block_compact_media .cards_card_media img {
+		height: 120px;
+		width: auto;
+		max-width: 100%;
+		object-fit: contain;
 	}
 
 	@media (max-width: 1024px) {

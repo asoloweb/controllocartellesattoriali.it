@@ -1,5 +1,5 @@
 ---
-import { DIRECTUS_URL } from '../lib/directus';
+import { directusAssetUrl } from '../lib/directus';
 
 interface SlideItem {
 	titolo?: string;
@@ -43,10 +43,7 @@ const sliderId = `slider-${Math.random().toString(36).slice(2)}`;
 
 function resolveImageSrc(value: string | undefined) {
 	if (!value) return '';
-	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
-		return value;
-	}
-	return `${DIRECTUS_URL}/assets/${value}`;
+	return directusAssetUrl(value, { format: 'webp', quality: 78, width: 1280, height: 720, fit: 'cover' });
 }
 ---
 

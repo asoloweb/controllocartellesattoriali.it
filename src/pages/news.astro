@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageContent from '../components/PageContent.astro';
-import { DIRECTUS_URL, directusItemsUrl } from '../lib/directus';
+import { directusAssetUrl, directusItemsUrl } from '../lib/directus';
 
 type Page = {
 	status?: string;
@@ -56,10 +56,7 @@ async function fetchNews() {
 
 function resolveImageSrc(value: string) {
 	if (!value) return '';
-	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
-		return value;
-	}
-	return `${DIRECTUS_URL}/assets/${value}`;
+	return directusAssetUrl(value, { format: 'webp', quality: 78, width: 900, height: 600, fit: 'cover' });
 }
 
 function formatDate(value?: string) {

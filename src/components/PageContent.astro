@@ -5,7 +5,7 @@ import SliderBlock from '../components/slider_block.astro';
 import CardsBlock from '../components/cards_block.astro';
 import AccordionBlock from '../components/accordion_block.astro';
 import GoogleReviewsBlock from '../components/google_reviews_block.astro';
-import { DIRECTUS_URL } from '../lib/directus';
+import { directusAssetUrl } from '../lib/directus';
 
 type HeroBlockItem = {
 	id: number;
@@ -154,10 +154,7 @@ const pageHeaderImage = page?.featured_image ? resolveImageSrc(page.featured_ima
 
 function resolveImageSrc(value: string) {
 	if (!value) return '';
-	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
-		return value;
-	}
-	return `${DIRECTUS_URL}/assets/${value}`;
+	return directusAssetUrl(value, { format: 'webp', quality: 78, width: 1600, height: 900, fit: 'cover' });
 }
 
 function resolveCollection(block: EditorEntry) {
@@ -324,7 +321,7 @@ function getBlockDomId(block: EditorEntry, collection: string, index: number) {
 				case 'cards_block': {
 					const cardsBlock = block.item as CardsBlockItem;
 					const cards = normalizeCards(cardsBlock.card);
-					blockContent = <CardsBlock titolo={cardsBlock.titolo} card={cards} />;
+					blockContent = <CardsBlock titolo={cardsBlock.titolo} card={cards} compactMedia={isContattiPage} />;
 					break;
 				}
 				case 'accordion_block': {

@@ -4,7 +4,7 @@ import PageContent from '../components/PageContent.astro';
 import PartecipaForm from '../components/PartecipaForm.astro';
 import GoogleReviewsBlock from '../components/google_reviews_block.astro';
 import HeroBlock from '../components/hero_block.astro';
-import { DIRECTUS_URL, directusItemsUrl } from '../lib/directus';
+import { directusAssetUrl, directusItemsUrl } from '../lib/directus';
 
 type Page = {
 	status?: string;
@@ -65,10 +65,7 @@ const homeHero14: HeroBlockItem = {
 
 function resolveImageSrc(value: string) {
 	if (!value) return '';
-	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
-		return value;
-	}
-	return `${DIRECTUS_URL}/assets/${value}`;
+	return directusAssetUrl(value, { format: 'webp', quality: 80, width: 1200, height: 900, fit: 'cover' });
 }
 
 const pageHeaderImage = page?.featured_image ? resolveImageSrc(page.featured_image) : '';

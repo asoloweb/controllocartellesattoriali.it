@@ -1,0 +1,214 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageContent from '../components/PageContent.astro';
+import { DIRECTUS_URL, directusItemsUrl } from '../lib/directus';
+
+type Page = {
+	status?: string;
+	slug?: string;
+	title?: string;
+	Titolo?: string;
+	seo_title?: string;
+	seo_desc?: string;
+	hide_page_header?: boolean;
+	featured_image?: string;
+	editor?: unknown[];
+};
+
+type NewsItem = {
+	id?: string;
+	slug?: string;
+	titolo?: string;
+	sottotitolo?: string;
+	data?: string;
+	immagine?: string;
+	testo?: string;
+};
+
+async function fetchNewsPage() {
+	const url = directusItemsUrl('pages');
+	url.searchParams.set(
+		'fields',
+		'*,editor.item.*,editor.item.slider.*,editor.item.slider.slides.item.*,editor.item.card.single_card_id.*,editor.item.card.single_card_id.link.id,editor.item.card.single_card_id.link.slug,editor.item.card.single_card_id.link.title,editor.item.accordion.single_accordion_id.*'
+	);
+	url.searchParams.set('filter[status][_eq]', 'published');
+	url.searchParams.set('filter[_or][0][slug][_eq]', 'news');
+	url.searchParams.set('filter[_or][1][slug][slug][_eq]', 'news');
+
+	const response = await fetch(url);
+	const data = await response.json();
+	return (data?.data?.[0] as Page | undefined) ?? null;
+}
+
+async function fetchNews() {
+	const url = directusItemsUrl('news');
+	url.searchParams.set('fields', 'id,slug,titolo,sottotitolo,data,immagine,testo');
+	url.searchParams.set('filter[status][_eq]', 'published');
+	url.searchParams.set('filter[slug][_nnull]', 'true');
+	url.searchParams.set('sort', '-data,-date_created');
+	url.searchParams.set('limit', '12');
+
+	const response = await fetch(url);
+	if (!response.ok) return [] as NewsItem[];
+	const payload = await response.json();
+	return (payload?.data as NewsItem[]) || [];
+}
+
+function resolveImageSrc(value: string) {
+	if (!value) return '';
+	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
+		return value;
+	}
+	return `${DIRECTUS_URL}/assets/${value}`;
+}
+
+function formatDate(value?: string) {
+	if (!value) return '';
+	try {
+		return new Intl.DateTimeFormat('it-IT', {
+			day: '2-digit',
+			month: 'long',
+			year: 'numeric',
+		}).format(new Date(value));
+	} catch {
+		return value;
+	}
+}
+
+function stripHtml(value?: string) {
+	if (!value) return '';
+	return value
+		.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+		.replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+		.replace(/<[^>]+>/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+const page = await fetchNewsPage();
+const newsList = await fetchNews();
+---
+
+<BaseLayout
+	title={page?.title || page?.Titolo || 'News'}
+	seoTitle={page?.seo_title}
+	seoDescription={page?.seo_desc || 'Ultime news e aggiornamenti su debiti, cartelle esattoriali e soluzioni legali.'}
+>
+	<PageContent
+		page={page}
+		notFoundTitle="Pagina news non trovata"
+		notFoundMessage="La pagina news non esiste ancora nel backend."
+	/>
+
+	<section class="news_section">
+		<div class="news_section_inner">
+			<h2>Ultime news</h2>
+
+			{newsList.length === 0 ? (
+				<p>Nessuna news pubblicata al momento.</p>
+			) : (
+				<div class="news_grid">
+					{newsList.map((news) => {
+						const imageSrc = news.immagine ? resolveImageSrc(news.immagine) : '';
+						const newsHref = `/news/${news.slug}`;
+						const excerptSource = news.sottotitolo || stripHtml(news.testo);
+						const excerpt = excerptSource.length > 180 ? `${excerptSource.slice(0, 177)}...` : excerptSource;
+
+						return (
+							<article class="news_card">
+								<a href={newsHref} class="news_card_link" aria-label={`Leggi: ${news.titolo || 'News'}`}>
+								{imageSrc && (
+									<img src={imageSrc} alt={news.titolo || 'News'} loading="lazy" decoding="async" />
+								)}
+								<div class="news_card_content">
+									{news.data && <p class="news_date">{formatDate(news.data)}</p>}
+									<h3>{news.titolo || 'News'}</h3>
+									{excerpt && <p>{excerpt}</p>}
+								</div>
+								</a>
+							</article>
+						);
+					})}
+				</div>
+			)}
+		</div>
+	</section>
+</BaseLayout>
+
+<style>
+	.news_section {
+		padding: 30px 20px 70px;
+	}
+
+	.news_section_inner {
+		max-width: var(--max-width);
+		margin: 0 auto;
+	}
+
+	.news_section h2 {
+		margin: 0 0 20px;
+	}
+
+	.news_grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 24px;
+	}
+
+	.news_card {
+		background: var(--bianco);
+		border-radius: 18px;
+		overflow: hidden;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+	}
+
+	.news_card_link {
+		display: block;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.news_card img {
+		display: block;
+		width: 100%;
+		height: 220px;
+		object-fit: cover;
+	}
+
+	.news_card_content {
+		padding: 18px;
+	}
+
+	.news_date {
+		margin: 0 0 8px;
+		font-size: 13px;
+		opacity: 0.8;
+	}
+
+	.news_card_content h3 {
+		margin: 0 0 10px;
+		font-size: 28px;
+		line-height: 1.1;
+	}
+
+	.news_card_content p {
+		margin: 0;
+		line-height: 1.5;
+	}
+
+	@media (max-width: 1024px) {
+		.news_grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media (max-width: 760px) {
+		.news_grid {
+			grid-template-columns: 1fr;
+		}
+
+		.news_card img {
+			height: 200px;
+		}
+	}
+</style>

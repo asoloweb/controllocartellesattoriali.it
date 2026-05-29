@@ -1,0 +1,267 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageContent from '../../components/PageContent.astro';
+import HeroBlock from '../../components/hero_block.astro';
+import { DIRECTUS_URL, directusItemsUrl } from '../../lib/directus';
+
+type NewsItem = {
+	id?: string;
+	slug?: string;
+	titolo?: string;
+	sottotitolo?: string;
+	data?: string;
+	immagine?: string;
+	testo?: string;
+	seo_title?: string;
+	seo_desc?: string;
+	date_created?: string;
+	date_updated?: string;
+};
+
+type Page = {
+	title?: string;
+	Titolo?: string;
+	description?: string;
+	featured_image?: string;
+	hide_page_header?: boolean;
+	editor?: unknown[];
+};
+
+type HeroBlockItem = {
+	id?: number;
+	titolo?: string;
+	sottotitolo?: string;
+	paragrafo?: string;
+	label?: string;
+	href?: string;
+	immagine?: string;
+	inverti?: boolean;
+	background_color?: string;
+};
+
+function resolveImageSrc(value?: string) {
+	if (!value) return '';
+	if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
+		return value;
+	}
+	return `${DIRECTUS_URL}/assets/${value}`;
+}
+
+function stripHtml(value?: string) {
+	if (!value) return '';
+	return value
+		.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+		.replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+		.replace(/<[^>]+>/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+function formatDate(value?: string) {
+	if (!value) return '';
+	try {
+		return new Intl.DateTimeFormat('it-IT', {
+			day: '2-digit',
+			month: 'long',
+			year: 'numeric',
+		}).format(new Date(value));
+	} catch {
+		return value;
+	}
+}
+
+async function fetchNewsBySlug(slug: string) {
+	const url = directusItemsUrl('news');
+	url.searchParams.set(
+		'fields',
+		'id,slug,titolo,sottotitolo,data,immagine,testo,seo_title,seo_desc,date_created,date_updated'
+	);
+	url.searchParams.set('filter[status][_eq]', 'published');
+	url.searchParams.set('filter[slug][_eq]', slug);
+	url.searchParams.set('limit', '1');
+
+	const response = await fetch(url);
+	if (!response.ok) return null;
+	const payload = await response.json();
+	return (payload?.data?.[0] as NewsItem | undefined) ?? null;
+}
+
+async function fetchContattiPage() {
+	const url = directusItemsUrl('pages');
+	url.searchParams.set(
+		'fields',
+		'*,editor.item.*,editor.item.slider.*,editor.item.slider.slides.item.*,editor.item.card.single_card_id.*,editor.item.card.single_card_id.link.id,editor.item.card.single_card_id.link.slug,editor.item.card.single_card_id.link.title,editor.item.accordion.single_accordion_id.*'
+	);
+	url.searchParams.set('filter[status][_eq]', 'published');
+	url.searchParams.set('filter[_or][0][slug][_eq]', 'contatti');
+	url.searchParams.set('filter[_or][1][slug][slug][_eq]', 'contatti');
+
+	const response = await fetch(url);
+	if (!response.ok) return null;
+	const data = await response.json();
+	return (data?.data?.[0] as Page | undefined) ?? null;
+}
+
+async function fetchHeroBlock15() {
+	const url = directusItemsUrl('hero_block');
+	url.searchParams.set('fields', 'id,titolo,sottotitolo,paragrafo,label,href,immagine,inverti,background_color');
+	url.searchParams.set('filter[id][_eq]', '15');
+	url.searchParams.set('limit', '1');
+
+	const response = await fetch(url);
+	if (!response.ok) return null;
+	const data = await response.json();
+	return (data?.data?.[0] as HeroBlockItem | undefined) ?? null;
+}
+
+const routeSlug = String(Astro.params.slug || '').trim();
+const news = routeSlug ? await fetchNewsBySlug(routeSlug) : null;
+const contattiPage = await fetchContattiPage();
+const hero15 = await fetchHeroBlock15();
+
+if (!news) {
+	Astro.response.status = 404;
+}
+
+const pageTitle = news?.titolo || 'News';
+const seoTitle = news?.seo_title || `${pageTitle} | News`;
+const seoDescription = news?.seo_desc || news?.sottotitolo || stripHtml(news?.testo).slice(0, 155);
+const coverImage = resolveImageSrc(news?.immagine);
+
+const articleJsonLd = news
+	? JSON.stringify(
+			{
+				'@context': 'https://schema.org',
+				'@type': 'NewsArticle',
+				headline: news.titolo || '',
+				datePublished: news.data || news.date_created || undefined,
+				dateModified: news.date_updated || news.date_created || undefined,
+				image: coverImage ? [coverImage] : undefined,
+				description: seoDescription || undefined,
+				mainEntityOfPage: `${Astro.site || 'https://controllocartellesattoriali.it'}/news/${news.slug}`,
+			},
+			null,
+			2
+		)
+	: '';
+---
+
+<BaseLayout
+	title={pageTitle}
+	seoTitle={seoTitle}
+	seoDescription={seoDescription}
+	canonicalPath={news?.slug ? `/news/${news.slug}` : '/news'}
+	noindex={!news}
+>
+	{news ? (
+		<>
+			<article class="news_detail">
+				<div class="news_detail_inner">
+					<p class="news_breadcrumb"><a href="/news">News</a> / {news.titolo}</p>
+					<h1>{news.titolo}</h1>
+					{news.data && <p class="news_date">{formatDate(news.data)}</p>}
+					{coverImage && <img src={coverImage} alt={news.titolo || 'News'} fetchpriority="high" />}
+					{news.sottotitolo && <p class="news_subtitle">{news.sottotitolo}</p>}
+					{news.testo && <div class="news_content" set:html={news.testo} />}
+				</div>
+			</article>
+
+			{contattiPage && <PageContent page={contattiPage} showHeader={false} />}
+
+			{hero15 && (
+				<section class="news_hero_cta">
+					<HeroBlock
+						item={String(hero15.id || '15')}
+						titolo={hero15.titolo}
+						sottotitolo={hero15.sottotitolo}
+						paragrafo={hero15.paragrafo}
+						label={hero15.label}
+						href={hero15.href}
+						immagine={hero15.immagine}
+						inverti={hero15.inverti}
+						background_color={hero15.background_color}
+					/>
+				</section>
+			)}
+
+			{articleJsonLd && <script type="application/ld+json" set:html={articleJsonLd}></script>}
+		</>
+	) : (
+		<section class="news_detail news_detail_not_found">
+			<div class="news_detail_inner">
+				<h1>News non trovata</h1>
+				<p>La news richiesta non esiste o non e pubblicata.</p>
+			</div>
+		</section>
+	)}
+</BaseLayout>
+
+<style>
+	.news_detail {
+		padding: 44px 20px 30px;
+	}
+
+	.news_detail_inner {
+		max-width: var(--max-width);
+		margin: 0 auto;
+		padding: 30px;
+		border-radius: 20px;
+		background-color: #fff;
+		text-align: left;
+	}
+
+	.news_breadcrumb {
+		margin: 0 0 12px;
+		font-size: 14px;
+		opacity: 0.75;
+	}
+
+	.news_breadcrumb a {
+		color: inherit;
+	}
+
+	.news_detail h1 {
+		margin: 0 0 10px;
+	}
+
+	.news_date {
+		margin: 0 0 18px;
+		opacity: 0.8;
+	}
+
+	.news_detail img {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-radius: 20px;
+		margin: 0 0 18px;
+	}
+
+	.news_subtitle {
+		font-size: 22px;
+		line-height: 1.4;
+		margin: 0 0 16px;
+	}
+
+	.news_content {
+		line-height: 1.7;
+		font-size: 18px;
+	}
+
+	.news_content :global(h2),
+	.news_content :global(h3) {
+		margin-top: 28px;
+	}
+
+	.news_content :global(p) {
+		margin: 0 0 14px;
+	}
+
+	.news_hero_cta {
+		padding-bottom: 40px;
+	}
+
+	.news_detail_not_found {
+		padding-bottom: 70px;
+	}
+</style>

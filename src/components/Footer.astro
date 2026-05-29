@@ -143,6 +143,29 @@ const hasLeggeTreLink = footerMenus.some((menu) =>
 if (!hasLeggeTreLink) {
 	footerMenus[0]?.items.push({ id: 'legge-3-fallback', label: 'LEGGE 3', custom_href: '/legge-3' });
 }
+
+const hasNewsLink = footerMenus.some((menu) =>
+	menu.items.some((item) => normalizeHref(getItemHref(item)).split('?')[0] === '/news')
+);
+if (!hasNewsLink) {
+	const newsItem: MenuItem = { id: 'news-fallback', label: 'NEWS', custom_href: '/news' };
+	let inserted = false;
+
+	for (const menu of footerMenus) {
+		const privacyIndex = menu.items.findIndex(
+			(item) => normalizeHref(getItemHref(item)).split('?')[0] === '/privacy-policy'
+		);
+		if (privacyIndex >= 0) {
+			menu.items.splice(privacyIndex, 0, newsItem);
+			inserted = true;
+			break;
+		}
+	}
+
+	if (!inserted) {
+		footerMenus[0]?.items.push(newsItem);
+	}
+}
 ---
 
 <footer class="site-footer">

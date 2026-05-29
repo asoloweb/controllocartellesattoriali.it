@@ -33,12 +33,19 @@ const routeSlug = String(Astro.params.slug || '').trim();
 const page =
 	(Astro.props?.page as Page | undefined) ||
 	(routeSlug ? await fetchPageBySlug(routeSlug) : null);
+
+if (!page) {
+	Astro.response.status = 404;
+}
+
+const fallbackTitle = routeSlug ? `Pagina non trovata: ${routeSlug}` : 'Pagina non trovata';
 ---
 
 <BaseLayout
-	title={page?.title || page?.Titolo || 'Pagina'}
+	title={page?.title || page?.Titolo || fallbackTitle}
 	seoTitle={page?.seo_title}
 	seoDescription={page?.seo_desc}
+	noindex={!page}
 >
 	<PageContent page={page} />
 </BaseLayout>

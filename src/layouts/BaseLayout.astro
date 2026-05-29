@@ -9,10 +9,15 @@ export interface Props {
 	seoTitle?: string;
 	seoDescription?: string;
 	canonicalPath?: string;
+	noindex?: boolean;
 }
 
-const { title, seoTitle, seoDescription, canonicalPath } = Astro.props;
+const { title, seoTitle, seoDescription, canonicalPath, noindex = false } = Astro.props;
 const resolvedTitle = seoTitle || title;
+const resolvedDescription =
+	typeof seoDescription === 'string' && seoDescription.trim().length > 0
+		? seoDescription.trim()
+		: `${resolvedTitle} | Controllo Cartelle Esattoriali`;
 const shouldLoadThirdPartyScripts = !import.meta.env.DEV;
 const siteUrl = (import.meta.env.PUBLIC_SITE_URL || 'https://controllocartellesattoriali.it').replace(/\/+$/, '');
 const organizationName =
@@ -36,9 +41,6 @@ const organizationSameAs = (import.meta.env.PUBLIC_ORGANIZATION_SAME_AS || '')
 const umamiScriptSrc = import.meta.env.PUBLIC_UMAMI_SCRIPT_SRC || 'https://umami.asoloweb.it/script.js';
 const umamiWebsiteId =
 	import.meta.env.PUBLIC_UMAMI_WEBSITE_ID || '517b6a8c-733f-4d9f-a924-17c001c2806d';
-const cookieFirstSiteId =
-	import.meta.env.PUBLIC_COOKIEFIRST_SITE_ID ||
-	'controllocartellesattoriali.it-ab8997c4-07b9-4efd-ae2b-8e8a064a7ed1';
 
 function resolveImageSrc(value: string) {
 	if (!value) return '';
@@ -127,9 +129,6 @@ const organizationJsonLd = JSON.stringify(
 					addressCountry: organizationCountry,
 				},
 				areaServed: organizationAreaServed,
-				provider: {
-					'@id': organizationId,
-				},
 			},
 		],
 	},
@@ -151,13 +150,13 @@ const organizationJsonLd = JSON.stringify(
 		<link rel="alternate" hreflang="it-IT" href={canonicalUrl} />
 		<link rel="alternate" hreflang="x-default" href={canonicalUrl} />
 		<title>{resolvedTitle}</title>
-		{seoDescription && <meta name="description" content={seoDescription} />}
+		<meta name="description" content={resolvedDescription} />
+		{noindex && <meta name="robots" content="noindex, nofollow" />}
 		<script type="application/ld+json" set:html={organizationJsonLd}></script>
 		<link rel="stylesheet" href="/vendor/aos.css" />
 		<link rel="stylesheet" href="/vendor/swiper-bundle.min.css" />
 		{shouldLoadThirdPartyScripts && (
 			<>
-				<script src={`https://consent.cookiefirst.com/sites/${cookieFirstSiteId}/consent.js`}></script>
 				<script
 					type="text/javascript"
 					src="https://embeds.iubenda.com/widgets/517fe488-4282-47d5-8204-01cd7d915a30.js"

@@ -52,7 +52,14 @@ const {
 	cta_href = '',
 } = Astro.props;
 
-const apiKey = import.meta.env.GOOGLE_MAPS_API_KEY || import.meta.env.GOOGLE_PLACES_API_KEY;
+const runtimeEnv =
+	typeof process !== 'undefined' && process && typeof process.env === 'object' ? process.env : {};
+const apiKey =
+	import.meta.env.GOOGLE_MAPS_API_KEY ||
+	import.meta.env.GOOGLE_PLACES_API_KEY ||
+	runtimeEnv.GOOGLE_MAPS_API_KEY ||
+	runtimeEnv.GOOGLE_PLACES_API_KEY ||
+	'';
 const maxReviews = Math.min(10, Math.max(1, Number(numero_recensioni) || 6));
 const minRating = Math.min(5, Math.max(1, Number(min_rating) || 1));
 const placeQuery = String(
@@ -77,7 +84,9 @@ const cacheStore =
 		return store;
 	})();
 
-let placeId = String(google_place_id || import.meta.env.GOOGLE_MYBUSINESS_PLACE_ID || '').trim();
+let placeId = String(
+	google_place_id || import.meta.env.GOOGLE_MYBUSINESS_PLACE_ID || runtimeEnv.GOOGLE_MYBUSINESS_PLACE_ID || ''
+).trim();
 let placeDetails: GooglePlaceDetails | null = null;
 let reviews: GoogleReview[] = [];
 const fallbackReviews: ReviewCard[] = [

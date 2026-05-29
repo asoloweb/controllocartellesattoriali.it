@@ -107,12 +107,13 @@ async function fetchJson(url: string) {
 			Accept: 'application/json',
 		},
 	});
-
+	const data = await response.json();
 	if (!response.ok) {
-		throw new Error(`Google API ${response.status}`);
+		const status = typeof data?.status === 'string' ? data.status : `HTTP_${response.status}`;
+		const message = data?.error_message ? ` - ${data.error_message}` : '';
+		throw new Error(`Google API ${status}${message}`);
 	}
-
-	return response.json();
+	return data;
 }
 
 async function resolvePlaceId(input: string) {
@@ -130,7 +131,10 @@ async function resolvePlaceId(input: string) {
 	url.searchParams.set('key', apiKey);
 
 	const data = await fetchJson(url.toString());
-	if (data?.status !== 'OK') return '';
+	if (data?.status !== 'OK') {
+		console.error('Google Places findplacefromtext non-OK status:', data?.status, data?.error_message || '');
+		return '';
+	}
 	const foundPlaceId = data?.candidates?.[0]?.place_id || '';
 	if (foundPlaceId) {
 		cacheStore.placeIdByQuery.set(normalized, {
@@ -151,8 +155,19 @@ async function fetchPlaceDetails(inputPlaceId: string) {
 	url.searchParams.set('key', apiKey);
 
 	const data = await fetchJson(url.toString());
-	if (data?.status !== 'OK' || !data?.result) return null;
+	if (data?.status !== 'OK' || !data?.result) {
+		console.error('Google Places details non-OK status:', data?.status, data?.error_message || '');
+		return null;
+	}
 	return data.result as GooglePlaceDetails;
+}
+
+if (!apiKey) {
+	console.error('Google reviews fallback: GOOGLE_MAPS_API_KEY/GOOGLE_PLACES_API_KEY not set in runtime env');
+}
+
+if (!placeId && !placeQuery) {
+	console.error('Google reviews fallback: missing place id and business query');
 }
 
 if (apiKey) {

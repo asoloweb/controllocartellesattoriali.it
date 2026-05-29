@@ -57,6 +57,8 @@ const runtimeEnv =
 const apiKey =
 	import.meta.env.GOOGLE_MAPS_API_KEY ||
 	import.meta.env.GOOGLE_PLACES_API_KEY ||
+	import.meta.env.PUBLIC_GOOGLE_MAPS_API_KEY ||
+	import.meta.env.PUBLIC_GOOGLE_PLACES_API_KEY ||
 	runtimeEnv.GOOGLE_MAPS_API_KEY ||
 	runtimeEnv.GOOGLE_PLACES_API_KEY ||
 	'';
@@ -85,7 +87,11 @@ const cacheStore =
 	})();
 
 let placeId = String(
-	google_place_id || import.meta.env.GOOGLE_MYBUSINESS_PLACE_ID || runtimeEnv.GOOGLE_MYBUSINESS_PLACE_ID || ''
+	google_place_id ||
+		import.meta.env.GOOGLE_MYBUSINESS_PLACE_ID ||
+		import.meta.env.PUBLIC_GOOGLE_MYBUSINESS_PLACE_ID ||
+		runtimeEnv.GOOGLE_MYBUSINESS_PLACE_ID ||
+		''
 ).trim();
 let placeDetails: GooglePlaceDetails | null = null;
 let reviews: GoogleReview[] = [];

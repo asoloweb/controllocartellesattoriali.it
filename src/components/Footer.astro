@@ -90,6 +90,20 @@ function resolveImageSrc(value: string) {
 	return `${DIRECTUS_URL}/assets/${value}`;
 }
 
+function preventCloudflareEmailObfuscation(value: string) {
+	if (!value) return '';
+	const protectedParts: string[] = [];
+	const protectedHtml = value
+		.replace(/<!--email_off-->|<!--\/email_off-->/g, '')
+		.replace(/<a\b([^>]*href=["']mailto:[^"']+["'][^>]*)>([\s\S]*?)<\/a>/gi, (match) => {
+			const index = protectedParts.push(`<!--email_off-->${match}<!--/email_off-->`) - 1;
+			return `__EMAIL_PROTECTION_PLACEHOLDER_${index}__`;
+		})
+		.replace(/(?<![\w.+-])([\w.+-]+@[\w.-]+\.[a-z]{2,})(?![^<]*>|[\w.-])/gi, '<!--email_off-->$1<!--/email_off-->');
+
+	return protectedHtml.replace(/__EMAIL_PROTECTION_PLACEHOLDER_(\d+)__/g, (_, index) => protectedParts[Number(index)] || '');
+}
+
 function getItemPage(item: MenuItem): PageItem | null {
 	const rawPages = item.pages;
 	if (!rawPages || !Array.isArray(rawPages)) return null;
@@ -192,7 +206,7 @@ if (!hasNewsLink) {
 			))}
 		</div>
 	</nav>
-	<div class="footer_data" set:html={footerText} />
+	<div class="footer_data" set:html={preventCloudflareEmailObfuscation(footerText)} />
 	<div class="footer_cookie_policy">
 		<a
 			href="https://www.iubenda.com/privacy-policy/53116510/cookie-policy"

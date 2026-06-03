@@ -1,0 +1,21 @@
+# Controllo Cartelle Esattoriali
+
+> Servizio italiano per la valutazione di cartelle esattoriali, debiti fiscali, controlli Agenzia delle Entrate e supporto legale.
+
+## Site
+
+- Home: https://controllocartellesattoriali.it/
+- Perche: https://controllocartellesattoriali.it/perche
+- Chi siamo: https://controllocartellesattoriali.it/chi-siamo
+- Contatti: https://controllocartellesattoriali.it/contatti
+- Legge 3: https://controllocartellesattoriali.it/legge-3
+- News: https://controllocartellesattoriali.it/news
+- Richiedi analisi: https://controllocartellesattoriali.it/partecipa
+
+## Sitemap
+
+- https://controllocartellesattoriali.it/sitemap.xml
+
+## Notes
+
+The site is in Italian and focuses on legal and administrative assistance related to tax collection notices, debt checks, Agenzia delle Entrate controls, payment plans, prescription checks and over-indebtedness procedures.

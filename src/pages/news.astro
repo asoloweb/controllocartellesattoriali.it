@@ -84,6 +84,31 @@ function stripHtml(value?: string) {
 
 const page = await fetchNewsPage();
 const newsList = await fetchNews();
+const siteUrl = (import.meta.env.PUBLIC_SITE_URL || 'https://controllocartellesattoriali.it').replace(/\/+$/, '');
+const newsPageUrl = `${siteUrl}/news`;
+const newsItemListJsonLd = newsList.length > 0
+	? JSON.stringify(
+			{
+				'@context': 'https://schema.org',
+				'@type': 'CollectionPage',
+				name: page?.seo_title || page?.title || page?.Titolo || 'News',
+				url: newsPageUrl,
+				description:
+					page?.seo_desc || 'Ultime news e aggiornamenti su debiti, cartelle esattoriali e soluzioni legali.',
+				mainEntity: {
+					'@type': 'ItemList',
+					itemListElement: newsList.map((news, index) => ({
+						'@type': 'ListItem',
+						position: index + 1,
+						url: `${siteUrl}/news/${news.slug}`,
+						name: news.titolo || `News ${index + 1}`,
+					})),
+				},
+			},
+			null,
+			2
+		)
+	: '';
 ---
 
 <BaseLayout
@@ -128,8 +153,19 @@ const newsList = await fetchNews();
 					})}
 				</div>
 			)}
+
+			<nav class="news_internal_links" aria-label="Approfondimenti consigliati">
+				<h2>Approfondimenti utili</h2>
+				<div class="news_internal_links_grid">
+					<a href="/partecipa">Richiedi l'analisi della cartella esattoriale</a>
+					<a href="/legge-3">Scopri la Legge 3 per il sovraindebitamento</a>
+					<a href="/contatti">Parla con lo studio legale</a>
+				</div>
+			</nav>
 		</div>
 	</section>
+
+	{newsItemListJsonLd && <script type="application/ld+json" set:html={newsItemListJsonLd}></script>}
 </BaseLayout>
 
 <style>
@@ -150,6 +186,39 @@ const newsList = await fetchNews();
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 24px;
+	}
+
+	.news_internal_links {
+		margin-top: 38px;
+		padding: 28px;
+		border-radius: 20px;
+		background: #fff;
+	}
+
+	.news_internal_links h2 {
+		margin: 0 0 18px;
+	}
+
+	.news_internal_links_grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 16px;
+	}
+
+	.news_internal_links_grid a {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 92px;
+		padding: 18px;
+		border-radius: 16px;
+		background: var(--primary);
+		color: #fff;
+		text-align: center;
+		text-decoration: none;
+		font-family: var(--font-heading);
+		font-size: 24px;
+		line-height: 1.1;
 	}
 
 	.news_card {
@@ -194,13 +263,15 @@ const newsList = await fetchNews();
 	}
 
 	@media (max-width: 1024px) {
-		.news_grid {
+		.news_grid,
+		.news_internal_links_grid {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
 
 	@media (max-width: 760px) {
-		.news_grid {
+		.news_grid,
+		.news_internal_links_grid {
 			grid-template-columns: 1fr;
 		}
 

@@ -83,6 +83,21 @@ async function fetchNewsBySlug(slug: string) {
 	return (payload?.data?.[0] as NewsItem | undefined) ?? null;
 }
 
+async function fetchRelatedNews(currentSlug: string) {
+	const url = directusItemsUrl('news');
+	url.searchParams.set('fields', 'id,slug,titolo,sottotitolo,data,immagine,testo');
+	url.searchParams.set('filter[status][_eq]', 'published');
+	url.searchParams.set('filter[slug][_nnull]', 'true');
+	url.searchParams.set('filter[slug][_neq]', currentSlug);
+	url.searchParams.set('sort', '-data,-date_created');
+	url.searchParams.set('limit', '3');
+
+	const response = await fetch(url);
+	if (!response.ok) return [] as NewsItem[];
+	const payload = await response.json();
+	return (payload?.data as NewsItem[]) || [];
+}
+
 async function fetchContattiPage() {
 	const url = directusItemsUrl('pages');
 	url.searchParams.set(
@@ -113,6 +128,7 @@ async function fetchHeroBlock15() {
 
 const routeSlug = String(Astro.params.slug || '').trim();
 const news = routeSlug ? await fetchNewsBySlug(routeSlug) : null;
+const relatedNews = news?.slug ? await fetchRelatedNews(news.slug) : [];
 const contattiPage = await fetchContattiPage();
 const hero15 = await fetchHeroBlock15();
 
@@ -124,18 +140,64 @@ const pageTitle = news?.titolo || 'News';
 const seoTitle = news?.seo_title || `${pageTitle} | News`;
 const seoDescription = news?.seo_desc || news?.sottotitolo || stripHtml(news?.testo).slice(0, 155);
 const coverImage = resolveImageSrc(news?.immagine);
+const siteUrl = (import.meta.env.PUBLIC_SITE_URL || 'https://controllocartellesattoriali.it').replace(/\/+$/, '');
+const articleUrl = news?.slug ? `${siteUrl}/news/${news.slug}` : `${siteUrl}/news`;
+const organizationName = import.meta.env.PUBLIC_ORGANIZATION_NAME || 'Controllo Cartelle Esattoriali';
 
 const articleJsonLd = news
 	? JSON.stringify(
 			{
 				'@context': 'https://schema.org',
 				'@type': 'NewsArticle',
+				url: articleUrl,
 				headline: news.titolo || '',
 				datePublished: news.data || news.date_created || undefined,
 				dateModified: news.date_updated || news.date_created || undefined,
 				image: coverImage ? [coverImage] : undefined,
 				description: seoDescription || undefined,
-				mainEntityOfPage: `${Astro.site || 'https://controllocartellesattoriali.it'}/news/${news.slug}`,
+				mainEntityOfPage: articleUrl,
+				articleSection: 'Cartelle esattoriali',
+				inLanguage: 'it-IT',
+				author: {
+					'@type': 'Organization',
+					name: organizationName,
+					url: siteUrl,
+				},
+				publisher: {
+					'@type': 'Organization',
+					name: organizationName,
+					url: siteUrl,
+				},
+			},
+			null,
+			2
+		)
+	: '';
+const breadcrumbJsonLd = news
+	? JSON.stringify(
+			{
+				'@context': 'https://schema.org',
+				'@type': 'BreadcrumbList',
+				itemListElement: [
+					{
+						'@type': 'ListItem',
+						position: 1,
+						name: 'Home',
+						item: `${siteUrl}/`,
+					},
+					{
+						'@type': 'ListItem',
+						position: 2,
+						name: 'News',
+						item: `${siteUrl}/news`,
+					},
+					{
+						'@type': 'ListItem',
+						position: 3,
+						name: news.titolo || 'News',
+						item: articleUrl,
+					},
+				],
 			},
 			null,
 			2
@@ -154,12 +216,36 @@ const articleJsonLd = news
 		<>
 			<article class="news_detail">
 				<div class="news_detail_inner">
-					<p class="news_breadcrumb"><a href="/news">News</a> / {news.titolo}</p>
+					<p class="news_breadcrumb"><a href="/">Home</a> / <a href="/news">News</a> / {news.titolo}</p>
 					<h1>{news.titolo}</h1>
 					{news.data && <p class="news_date">{formatDate(news.data)}</p>}
 					{coverImage && <img src={coverImage} alt={news.titolo || 'News'} fetchpriority="high" />}
 					{news.sottotitolo && <p class="news_subtitle">{news.sottotitolo}</p>}
 					{news.testo && <div class="news_content" set:html={news.testo} />}
+
+					<nav class="news_article_links" aria-label="Link interni consigliati">
+						<h2>Approfondisci</h2>
+						<div class="news_article_links_grid">
+							<a href="/partecipa">Richiedi una verifica della cartella esattoriale</a>
+							<a href="/legge-3">Legge 3 e sovraindebitamento</a>
+							<a href="/contatti">Parla con lo studio legale</a>
+							<a href="/news">Tutte le news su cartelle esattoriali</a>
+						</div>
+					</nav>
+
+					{relatedNews.length > 0 && (
+						<section class="related_news" aria-labelledby="related-news-title">
+							<h2 id="related-news-title">News correlate</h2>
+							<div class="related_news_grid">
+								{relatedNews.map((item) => (
+									<a class="related_news_card" href={`/news/${item.slug}`}>
+										{item.data && <span>{formatDate(item.data)}</span>}
+										<strong>{item.titolo || 'News'}</strong>
+									</a>
+								))}
+							</div>
+						</section>
+					)}
 				</div>
 			</article>
 
@@ -182,6 +268,7 @@ const articleJsonLd = news
 			)}
 
 			{articleJsonLd && <script type="application/ld+json" set:html={articleJsonLd}></script>}
+			{breadcrumbJsonLd && <script type="application/ld+json" set:html={breadcrumbJsonLd}></script>}
 		</>
 	) : (
 		<section class="news_detail news_detail_not_found">
@@ -254,11 +341,65 @@ const articleJsonLd = news
 		margin: 0 0 14px;
 	}
 
+	.news_article_links,
+	.related_news {
+		margin-top: 34px;
+		padding-top: 26px;
+		border-top: 1px solid rgba(0, 0, 0, 0.12);
+	}
+
+	.news_article_links h2,
+	.related_news h2 {
+		margin: 0 0 18px;
+	}
+
+	.news_article_links_grid,
+	.related_news_grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 14px;
+	}
+
+	.news_article_links_grid a,
+	.related_news_card {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		min-height: 98px;
+		padding: 18px;
+		border-radius: 16px;
+		background: var(--primary);
+		color: #fff;
+		text-decoration: none;
+		font-family: var(--font-heading);
+		font-size: 24px;
+		line-height: 1.1;
+	}
+
+	.related_news_card {
+		background: #f4f4f4;
+		color: var(--nero);
+	}
+
+	.related_news_card span {
+		margin-bottom: 8px;
+		font-family: var(--font-body);
+		font-size: 13px;
+		opacity: 0.75;
+	}
+
 	.news_hero_cta {
 		padding-bottom: 40px;
 	}
 
 	.news_detail_not_found {
 		padding-bottom: 70px;
+	}
+
+	@media (max-width: 760px) {
+		.news_article_links_grid,
+		.related_news_grid {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>

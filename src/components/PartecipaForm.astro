@@ -41,6 +41,25 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 		<button class="contact_form_submit MainButton" type="submit">Invia richiesta</button>
 		<p class="contact_form_status" role="status" aria-live="polite"></p>
 	</form>
+
+	<div class="contact_form_whatsapp_wrap" hidden>
+		<p class="contact_form_whatsapp_status" aria-label="Siamo online su WhatsApp">
+			<span aria-hidden="true"></span>
+			Siamo online
+		</p>
+		<a
+			class="contact_form_whatsapp"
+			href="https://wa.me/393517444368?text=Vorrei%20verificare%20subito%20la%20mia%20cartella%20esattoriale"
+			target="_blank"
+			rel="noopener noreferrer"
+			aria-label="Apri WhatsApp per verificare subito la tua cartella"
+		>
+			<svg aria-hidden="true" viewBox="0 0 32 32" focusable="false">
+				<path d="M16.02 3.2c-7.06 0-12.8 5.64-12.8 12.58 0 2.23.6 4.41 1.73 6.31L3.2 28.8l6.9-1.77a13.03 13.03 0 0 0 5.92 1.48c7.06 0 12.8-5.64 12.8-12.58S23.08 3.2 16.02 3.2Zm0 22.98c-1.92 0-3.8-.52-5.43-1.51l-.39-.23-4.09 1.05 1.09-3.88-.26-.4a10.15 10.15 0 0 1-1.58-5.43c0-5.66 4.78-10.26 10.66-10.26s10.66 4.6 10.66 10.26-4.78 10.4-10.66 10.4Zm5.84-7.7c-.32-.16-1.88-.91-2.17-1.02-.29-.1-.5-.16-.71.16-.21.31-.82 1.02-1 1.23-.18.21-.37.24-.69.08-.32-.16-1.35-.49-2.57-1.56-.95-.83-1.59-1.86-1.78-2.17-.18-.31-.02-.48.14-.64.14-.14.32-.37.48-.55.16-.18.21-.31.32-.52.1-.21.05-.39-.03-.55-.08-.16-.71-1.68-.98-2.3-.26-.6-.52-.52-.71-.53h-.6c-.21 0-.55.08-.84.39-.29.31-1.11 1.07-1.11 2.61s1.14 3.03 1.3 3.24c.16.21 2.25 3.38 5.45 4.74.76.32 1.36.52 1.82.66.77.24 1.47.21 2.02.13.62-.09 1.88-.76 2.15-1.49.26-.73.26-1.36.18-1.49-.08-.13-.29-.21-.61-.37Z" />
+			</svg>
+			<span>VERIFICA SUBITO</span>
+		</a>
+	</div>
 </section>
 
 <script type="module">
@@ -58,6 +77,43 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 			event_callback: callback,
 		});
 		return false;
+	};
+
+	const trackWhatsappClick = (link) => {
+		const href = link instanceof HTMLAnchorElement ? link.href : '';
+		if (window.umami && typeof window.umami.track === 'function') {
+			window.umami.track('whatsapp_verifica_subito_click', {
+				button_text: 'VERIFICA SUBITO',
+				link_target: href,
+				source_path: window.location.pathname,
+			});
+		}
+
+		if (typeof window.gtag === 'function') {
+			window.gtag('event', 'click_to_whatsapp', {
+				contact_type: 'whatsapp',
+				link_target: href,
+			});
+			window.gtag('event', 'conversion', {
+				send_to: 'AW-10932709528/eZrDCM_fkKkcEJjRj90o',
+				value: 1.0,
+				currency: 'EUR',
+			});
+		}
+	};
+
+	const isWhatsappOnline = () => {
+		const parts = new Intl.DateTimeFormat('it-IT', {
+			timeZone: 'Europe/Rome',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false,
+		}).formatToParts(new Date());
+		const hour = Number(parts.find((part) => part.type === 'hour')?.value || '0');
+		const minute = Number(parts.find((part) => part.type === 'minute')?.value || '0');
+		const currentMinutes = hour * 60 + minute;
+		return (currentMinutes >= 9 * 60 && currentMinutes < 12 * 60) ||
+			(currentMinutes >= 15 * 60 + 30 && currentMinutes < 18 * 60);
 	};
 
 	const initPartecipaForm = () => {
@@ -220,7 +276,31 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 		});
 	};
 
+	const initWhatsappTracking = () => {
+		document.querySelectorAll('.contact_form_whatsapp').forEach((link) => {
+			if (!(link instanceof HTMLAnchorElement)) return;
+			if (link.dataset.trackingBound === 'true') return;
+			link.dataset.trackingBound = 'true';
+			link.addEventListener('click', () => trackWhatsappClick(link));
+		});
+	};
+
+	const initWhatsappAvailability = () => {
+		const updateVisibility = () => {
+			const isOnline = isWhatsappOnline();
+			document.querySelectorAll('.contact_form_whatsapp_wrap').forEach((wrapper) => {
+				if (!(wrapper instanceof HTMLElement)) return;
+				wrapper.hidden = !isOnline;
+			});
+		};
+
+		updateVisibility();
+		setInterval(updateVisibility, 60000);
+	};
+
 	initPartecipaForm();
+	initWhatsappTracking();
+	initWhatsappAvailability();
 </script>
 
 <style>
@@ -341,9 +421,84 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 		color: #d7d7d7;
 	}
 
+	.contact_form_whatsapp_wrap {
+		margin-top: 16px;
+	}
+
+	.contact_form_whatsapp_status {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		margin: 0 0 8px;
+		color: #bff5d0;
+		font-size: 15px;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+	}
+
+	.contact_form_whatsapp_status span {
+		width: 10px;
+		height: 10px;
+		border-radius: 999px;
+		background: #25d366;
+		box-shadow: 0 0 0 rgba(37, 211, 102, 0.65);
+		animation: whatsapp-status-pulse 1.4s ease-out infinite;
+	}
+
+	.contact_form_whatsapp {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		width: 100%;
+		min-height: 64px;
+		border-radius: 999px;
+		background: #25d366;
+		color: #fff;
+		font-family: var(--font-heading);
+		font-size: 28px;
+		line-height: 1;
+		text-decoration: none;
+		box-shadow: 0 12px 26px rgba(37, 211, 102, 0.26);
+		transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+	}
+
+	.contact_form_whatsapp:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 16px 32px rgba(37, 211, 102, 0.34);
+		opacity: 0.96;
+	}
+
+	.contact_form_whatsapp svg {
+		width: 28px;
+		height: 28px;
+		fill: currentColor;
+		flex: 0 0 auto;
+	}
+
+	@keyframes whatsapp-status-pulse {
+		0% {
+			box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.65);
+		}
+
+		70% {
+			box-shadow: 0 0 0 8px rgba(37, 211, 102, 0);
+		}
+
+		100% {
+			box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+		}
+	}
+
 	@media (max-width: 640px) {
 		.contact_form_submit.MainButton {
 			height: 58px;
+			font-size: 22px;
+		}
+
+		.contact_form_whatsapp {
+			min-height: 56px;
 			font-size: 22px;
 		}
 	}

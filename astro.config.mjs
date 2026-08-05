@@ -5,9 +5,9 @@ import cloudflare from '@astrojs/cloudflare';
 const directusUrl =
   process.env.PUBLIC_DIRECTUS_URL ||
   process.env.DIRECTUS_URL ||
-  'https://admin.asoloweb.it';
+  'https://admin.controllocartellesattoriali.it';
 let directusProtocol = 'https';
-let directusHostname = 'admin.asoloweb.it';
+let directusHostname = 'admin.controllocartellesattoriali.it';
 
 try {
   const parsed = new URL(directusUrl);

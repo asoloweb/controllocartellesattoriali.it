@@ -1,5 +1,5 @@
 const DIRECTUS_URL = (env) =>
-	(env.PUBLIC_DIRECTUS_URL || env.DIRECTUS_URL || 'https://controllocartellesattoriali.asoloweb.it').replace(
+	(env.PUBLIC_DIRECTUS_URL || env.DIRECTUS_URL || 'https://admin.controllocartellesattoriali.it').replace(
 		/\/+$/,
 		''
 	);

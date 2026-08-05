@@ -1,7 +1,7 @@
 const rawDirectusUrl =
 	import.meta.env.PUBLIC_DIRECTUS_URL ||
 	import.meta.env.DIRECTUS_URL ||
-	'https://controllocartellesattoriali.asoloweb.it';
+	'https://admin.controllocartellesattoriali.it';
 
 export const DIRECTUS_URL = rawDirectusUrl.replace(/\/+$/, '');
 

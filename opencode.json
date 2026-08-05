@@ -3,7 +3,7 @@
   "mcp": {
     "controllocartellesattoriali-admin": {
       "type": "remote",
-      "url": "https://controllocartellesattoriali.asoloweb.it/mcp",
+      "url": "https://admin.controllocartellesattoriali.it/mcp",
       "headers": {
         "Authorization": "Bearer U3AAisALkRmvhs6wsbYNHoFdY33Be4B1"
       }

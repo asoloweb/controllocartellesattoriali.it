@@ -90,14 +90,10 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 		}
 
 		if (typeof window.gtag === 'function') {
+			// WhatsApp clicks are separate from successfully submitted forms.
 			window.gtag('event', 'click_to_whatsapp', {
 				contact_type: 'whatsapp',
 				link_target: href,
-			});
-			window.gtag('event', 'conversion', {
-				send_to: 'AW-10932709528/eZrDCM_fkKkcEJjRj90o',
-				value: 1.0,
-				currency: 'EUR',
 			});
 		}
 	};

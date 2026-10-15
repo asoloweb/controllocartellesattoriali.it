@@ -4,14 +4,26 @@ interface Props {
 }
 
 const { title = 'Richiedi una valutazione' } = Astro.props;
+const isLeggeTrePage = Astro.url.pathname.replace(/\/+$/, '') === '/legge-3';
 ---
 
 <section class="contact_form">
 	<h2 class="contact_form_title">{title}</h2>
-	<p class="contact_form_intro">
+	{isLeggeTrePage ? (
+		<div class="contact_form_benefits">
+			<h3>Perché contattarci?</h3>
+			<ul class="contact_form_benefits_list">
+				<li><span aria-hidden="true">✓</span><span>Valutazione del tuo caso</span></li>
+				<li><span aria-hidden="true">✓</span><span>Incontro gratuito con l’avvocato dedicato alla tua posizione</span></li>
+				<li><span aria-hidden="true">✓</span><span>Proposte per risolvere la tua situazione</span></li>
+			</ul>
+		</div>
+	) : (
+		<p class="contact_form_intro">
 		Compila il modulo: il team legale ti contatterà per una prima valutazione e, successivamente, verrà
 		fissato un incontro per analizzare nel dettaglio la tua posizione debitoria e le possibili soluzioni.
 	</p>
+	)}
 
 	<form class="contact_form_form" method="post">
 		<label class="contact_form_field">
@@ -317,6 +329,36 @@ const { title = 'Richiedi una valutazione' } = Astro.props;
 		font-size: 15px;
 		line-height: 1.5;
 		color: #ececec;
+	}
+
+	.contact_form_benefits {
+		margin: 0 0 22px;
+	}
+
+	.contact_form_benefits h3 {
+		margin: 0 0 12px;
+		font-size: 20px;
+	}
+
+	.contact_form_benefits_list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 12px;
+		font-size: 15px;
+		line-height: 1.5;
+	}
+
+	.contact_form_benefits_list li {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		gap: 10px;
+	}
+
+	.contact_form_benefits_list li > span:first-child {
+		color: #86efac;
+		font-weight: 700;
 	}
 
 	.contact_form_form {

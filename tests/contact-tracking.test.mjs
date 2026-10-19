@@ -9,7 +9,7 @@ const component = readFileSync(new URL('../src/components/PartecipaForm.astro', 
 const script = component.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script, 'Contact component must contain its client script');
 
-function setup({ responseOk = true, networkError = false, search = '', fields = {} } = {}) {
+function setup({ responseOk = true, responseBody = { richiesta_id: 123, transaction_id: 'richiesta-123' }, networkError = false, search = '', fields = {} } = {}) {
   const googleEvents = [];
   const umamiEvents = [];
   const requests = [];
@@ -52,7 +52,7 @@ function setup({ responseOk = true, networkError = false, search = '', fields = 
     fetch: async (url, options) => {
       requests.push({ url, payload: JSON.parse(options.body) });
       if (networkError) throw new Error('Test network failure');
-      return { ok: responseOk, status: responseOk ? 200 : 500, json: async () => ({ error: 'Test server failure' }) };
+      return { ok: responseOk, status: responseOk ? 200 : 500, json: async () => responseOk ? responseBody : ({ error: 'Test server failure' }) };
     },
     console: { error() {} },
     setInterval() {},
@@ -65,6 +65,18 @@ function setup({ responseOk = true, networkError = false, search = '', fields = 
 }
 
 const conversions = (env) => env.googleEvents.filter((event) => event[1] === 'conversion');
+
+test('Malformed successful responses never produce a conversion', async () => {
+  for (const responseBody of [null, {}, { transaction_id: 'richiesta-123' },
+    ...[null, '', 0, -1, true, {}, [], 'test@example.invalid', '123 bad'].map(richiesta_id => ({ richiesta_id, transaction_id: 'richiesta-123' })),
+    { richiesta_id: 123 }, { richiesta_id: 123, transaction_id: 'richiesta-999' }]) {
+    const env = setup({ responseBody });
+    await env.submit();
+    assert.equal(conversions(env).length, 0, JSON.stringify(responseBody));
+    assert.equal(env.form.resets, 0);
+    assert.equal(env.status.dataset.state, 'error');
+  }
+});
 
 test('WhatsApp records a separate click event, never a form conversion', () => {
   const env = setup();
@@ -83,7 +95,8 @@ test('Successful form submission records exactly one Ads form conversion', async
   assert.equal(env.requests[0].payload.gclid, 'test-click-id');
   assert.equal(conversions(env).length, 1);
   assert.equal(conversions(env)[0][2].send_to, 'AW-10932709528/eZrDCM_fkKkcEJjRj90o');
-  assert.equal(env.googleEvents.filter((event) => event[1] === 'generate_lead').length, 1);
+  assert.equal(conversions(env)[0][2].transaction_id, 'richiesta-123');
+  assert.equal(env.googleEvents.filter((event) => event[1] === 'generate_lead').length, 0);
   assert.equal(env.status.dataset.state, 'success');
 });
 
@@ -119,6 +132,17 @@ test('Immediate repeated submission does not duplicate conversions', async () =>
   assert.equal(conversions(env).length, 1);
 });
 
+test('Umami lead event carries only an opaque record reference and non-contact metadata', async () => {
+  const env = setup();
+  await env.submit();
+  const [event, data] = env.umamiEvents[0];
+  assert.equal(event, 'partecipa_form_submit');
+  assert.equal(data.richiesta_id, 123);
+  assert.deepEqual(Object.keys(data).sort(), ['richiesta_id', 'source', 'submitted_at']);
+  assert.ok(!JSON.stringify(env.umamiEvents).includes('test@example.invalid'));
+  assert.ok(!JSON.stringify(env.umamiEvents).includes('0000000000'));
+});
+
 test('Form forwards advertising identifiers preserved in session storage', async () => {
   const env = setup();
   for (const key of ['gclid', 'gbraid', 'wbraid']) env.storage.set(`attribution_${key}`, `test-${key}`);
@@ -139,4 +163,31 @@ test('WhatsApp still works when the Google tag is unavailable', () => {
   delete env.context.window.gtag;
   assert.doesNotThrow(() => env.clickWhatsapp());
   assert.equal(env.umamiEvents[0][0], 'whatsapp_verifica_subito_click');
+});
+
+test('Backend deduplication completes UX without another lead event', async () => {
+  const env = setup({ responseBody: { richiesta_id: 123, transaction_id: 'richiesta-123', deduplicated: true } });
+  await env.submit();
+  assert.equal(conversions(env).length, 0);
+  assert.equal(env.umamiEvents.length, 0);
+  assert.equal(env.status.dataset.state, 'success');
+  assert.equal(env.form.resets, 1);
+  await env.submit();
+  assert.equal(env.requests.length, 1);
+});
+
+test('Throwing analytics never change a saved form into an error or disable repeat protection', async () => {
+  for (const provider of ['umami', 'gtag']) {
+    const env = setup();
+    if (provider === 'umami') env.context.window.umami.track = () => { throw new Error('Blocked analytics'); };
+    else env.context.window.gtag = () => { throw new Error('Blocked analytics'); };
+    await env.submit();
+    assert.equal(env.status.dataset.state, 'success', provider);
+    assert.equal(env.form.resets, 1);
+    assert.equal(env.form.querySelector('.contact_form_submit').disabled, false);
+    if (provider === 'umami') assert.equal(conversions(env).length, 1, 'Umami failure must not block Ads');
+    else assert.equal(env.umamiEvents.length, 1, 'Ads failure must not undo Umami');
+    await env.submit();
+    assert.equal(env.requests.length, 1);
+  }
 });

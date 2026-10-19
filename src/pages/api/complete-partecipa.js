@@ -39,50 +39,16 @@ function getUtcIsoTimestamp() {
 	return new Date().toISOString();
 }
 
-function extractDigits(value) {
-	return String(value || '').replace(/\D+/g, '');
-}
-
-async function sendGoogleAdsConversionFallback(env, payload = {}) {
-	const conversionId = extractDigits(env.GOOGLE_ADS_CONVERSION_ID || '10932709528');
-	const conversionLabel = String(env.GOOGLE_ADS_CONVERSION_LABEL || 'eZrDCM_fkKkcEJjRj90o').trim();
-
-	if (!conversionId || !conversionLabel) {
-		return { attempted: false, reason: 'missing_conversion_config' };
-	}
-
-	const params = new URLSearchParams({
-		label: conversionLabel,
-		guid: 'ON',
-		script: '0',
-		value: '1.0',
-		currency_code: 'EUR',
+function leadResponse(richiestaId, deduplicated = false) {
+	const validId = (typeof richiestaId === 'number' && Number.isSafeInteger(richiestaId) && richiestaId > 0) ||
+		(typeof richiestaId === 'string' && (/^[1-9]\d*$/.test(richiestaId) ||
+			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(richiestaId)));
+	if (!validId) return jsonResponse(502, { error: 'Invalid saved richiesta ID' });
+	return jsonResponse(200, {
+		richiesta_id: richiestaId,
+		transaction_id: `richiesta-${richiestaId}`,
+		...(deduplicated ? { deduplicated: true } : {}),
 	});
-
-	const gclid = String(payload.gclid || '').trim();
-	const gbraid = String(payload.gbraid || '').trim();
-	const wbraid = String(payload.wbraid || '').trim();
-
-	if (gclid) params.set('gclid', gclid);
-	if (gbraid) params.set('gbraid', gbraid);
-	if (wbraid) params.set('wbraid', wbraid);
-
-	const endpoint = `https://www.googleadservices.com/pagead/conversion/${conversionId}/?${params.toString()}`;
-
-	try {
-		const response = await fetch(endpoint, { method: 'GET' });
-		return {
-			attempted: true,
-			ok: response.ok,
-			status: response.status,
-		};
-	} catch (error) {
-		return {
-			attempted: true,
-			ok: false,
-			error: error instanceof Error ? error.message : String(error),
-		};
-	}
 }
 
 async function findExistingByIdempotencyKey(env, idempotencyKey) {
@@ -160,9 +126,7 @@ async function handleRequest(request, env) {
 	const privacy = String(body?.privacy || '').trim().toLowerCase();
 	const origine = String(body?.origine || '').trim();
 	const idempotencyKey = String(body?.idempotency_key || request.headers.get('x-idempotency-key') || '').trim();
-	const gclid = String(body?.gclid || '').trim();
-	const gbraid = String(body?.gbraid || '').trim();
-	const wbraid = String(body?.wbraid || '').trim();
+
 
 	if (!email || !telefono || privacy !== 'si') {
 		return jsonResponse(400, {
@@ -206,7 +170,7 @@ async function handleRequest(request, env) {
 
 	const existingId = await findExistingByIdempotencyKey(env, idempotencyKey);
 	if (existingId) {
-		return jsonResponse(200, { richiesta_id: existingId, deduplicated: true });
+		return leadResponse(existingId, true);
 	}
 
 	const dataRichiesta = getUtcIsoTimestamp();
@@ -227,31 +191,8 @@ async function handleRequest(request, env) {
 		return jsonResponse(500, { error: 'Richiesta creation failed', detail: err });
 	}
 
-	const richiestaData = await richiestaResponse.json();
-
-	const adsFallback = await sendGoogleAdsConversionFallback(env, {
-		gclid,
-		gbraid,
-		wbraid,
-	});
-
-	if (adsFallback.attempted) {
-		console.info('Google Ads fallback conversion result', {
-			richiesta_id: richiestaData?.data?.id,
-			status: adsFallback.status,
-			ok: adsFallback.ok,
-			has_gclid: !!gclid,
-			has_gbraid: !!gbraid,
-			has_wbraid: !!wbraid,
-			error: adsFallback.error || null,
-		});
-	}
-
-	return jsonResponse(200, {
-		richiesta_id: richiestaData?.data?.id,
-		ads_fallback_attempted: !!adsFallback.attempted,
-		ads_fallback_ok: !!adsFallback.ok,
-	});
+	const richiestaData = await richiestaResponse.json().catch(() => null);
+	return leadResponse(richiestaData?.data?.id);
 }
 
 export async function POST({ request, locals }) {

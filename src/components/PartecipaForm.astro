@@ -75,7 +75,7 @@ const isLeggeTrePage = Astro.url.pathname.replace(/\/+$/, '') === '/legge-3';
 </section>
 
 <script type="module">
-	const gtagReportConversion = (url) => {
+	const gtagReportConversion = (transactionId, url) => {
 		if (typeof window.gtag !== 'function') return false;
 		const callback = () => {
 			if (typeof url !== 'undefined') {
@@ -86,6 +86,7 @@ const isLeggeTrePage = Astro.url.pathname.replace(/\/+$/, '') === '/legge-3';
 			send_to: 'AW-10932709528/eZrDCM_fkKkcEJjRj90o',
 			value: 1.0,
 			currency: 'EUR',
+			transaction_id: transactionId,
 			event_callback: callback,
 		});
 		return false;
@@ -244,22 +245,13 @@ const isLeggeTrePage = Astro.url.pathname.replace(/\/+$/, '') === '/legge-3';
 					throw new Error(detail || `Errore invio richiesta: ${response.status}`);
 				}
 
-				if (window.umami && typeof window.umami.track === 'function') {
-					window.umami.track('partecipa_form_submit', {
-						email,
-						telefono,
-						privacy,
-						source: 'partecipa_form',
-						submitted_at: new Date().toISOString(),
-					});
-				}
-
-				if (typeof window.gtag === 'function') {
-					window.gtag('event', 'generate_lead', {
-						form_name: 'partecipa_form',
-						lead_type: 'contact_request',
-					});
-					gtagReportConversion();
+				const result = await response.json();
+				const richiestaId = result?.richiesta_id;
+				const validId = (typeof richiestaId === 'number' && Number.isSafeInteger(richiestaId) && richiestaId > 0) ||
+					(typeof richiestaId === 'string' && (/^[1-9]\d*$/.test(richiestaId) ||
+						/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(richiestaId)));
+				if (!validId || result.transaction_id !== `richiesta-${richiestaId}`) {
+					throw new Error('Risposta invio richiesta non valida. Riprova più tardi.');
 				}
 
 				form.reset();
@@ -267,6 +259,22 @@ const isLeggeTrePage = Astro.url.pathname.replace(/\/+$/, '') === '/legge-3';
 				if (statusEl) {
 					statusEl.textContent = 'Richiesta inviata con successo. Ti contatteremo al più presto.';
 					statusEl.dataset.state = 'success';
+				}
+
+				// Analytics must never turn a saved request into a failed submission.
+				if (result.deduplicated !== true) {
+					try {
+						if (window.umami && typeof window.umami.track === 'function') {
+							window.umami.track('partecipa_form_submit', {
+								richiesta_id: richiestaId,
+								source: 'partecipa_form',
+								submitted_at: new Date().toISOString(),
+							});
+						}
+					} catch { /* Analytics may be blocked or unavailable. */ }
+					try {
+						gtagReportConversion(result.transaction_id);
+					} catch { /* The native Ads tag is optional; never retry server-side. */ }
 				}
 			} catch (error) {
 				console.error('Errore invio richiesta:', error);

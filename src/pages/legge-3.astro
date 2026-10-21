@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PageContent from '../components/PageContent.astro';
+import LeggeTreAssessmentDetails from '../components/LeggeTreAssessmentDetails.astro';
 import PartecipaForm from '../components/PartecipaForm.astro';
 import GoogleReviewsBlock from '../components/google_reviews_block.astro';
 import HeroBlock from '../components/hero_block.astro';
@@ -52,10 +52,10 @@ const pageDescription = page?.description || '';
 
 const leggeTreHero: HeroBlockItem = {
 	id: 15,
-	titolo: 'Comincia da zero senza pensieri',
-	sottotitolo: 'Grazie alla Legge 3/2012 niente piu problemi!',
+	titolo: 'Verifica i requisiti per le procedure di sovraindebitamento',
+	sottotitolo: 'Controllo Cartelle Esattoriali · Valutazione legale preliminare',
 	paragrafo:
-		'Cancella il tuo sovraindebitamento\nSalva la tua casa e la tua famiglia\nNon avere lo stipendio o altri bene pignorati',
+		'Richiedi una prima valutazione per capire se la tua situazione presenta i requisiti per le procedure comunemente conosciute come Legge 3. Possibilità ed eventuali benefici dipendono dal caso concreto.',
 	label: 'Legge 3 >',
 	href: '/legge-3',
 	immagine: 'f86d89a0-a2a1-4771-8536-9e8109140cd3',
@@ -69,13 +69,14 @@ function resolveImageSrc(value: string) {
 }
 
 const pageHeaderImage = page?.featured_image ? resolveImageSrc(page.featured_image) : '';
-const showPageHeader = page ? !page.hide_page_header : false;
+const showPageHeader = false;
 ---
 
 <BaseLayout
-	title={page?.title || page?.Titolo || 'Legge 3'}
-	seoTitle={page?.seo_title}
-	seoDescription={page?.seo_desc}
+	title="Verifica requisiti Legge 3 | Controllo Cartelle Esattoriali"
+	seoTitle="Sovraindebitamento: verifica requisiti | Controllo Cartelle Esattoriali"
+	seoDescription="Richiedi una prima valutazione legale dei requisiti per le procedure di sovraindebitamento. Accesso e benefici dipendono dal caso concreto."
+	canonicalPath="/legge-3"
 >
 	{page && (
 		<div class="partecipa_preheader">
@@ -120,12 +121,7 @@ const showPageHeader = page ? !page.hide_page_header : false;
 	)}
 
 	<div class="legge3_page_content">
-		<PageContent
-			page={page}
-			showHeader={false}
-			notFoundTitle="Pagina Legge 3 non trovata"
-			notFoundMessage="La pagina Legge 3 richiesta non esiste."
-		/>
+		<LeggeTreAssessmentDetails />
 	</div>
 
 	{page && (

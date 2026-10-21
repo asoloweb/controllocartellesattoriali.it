@@ -1,0 +1,65 @@
+---
+const faqs = [
+	{
+		question: 'Che cosa significa verificare i requisiti della Legge 3?',
+		answer: 'Significa esaminare la situazione personale e debitoria per capire se possono essere applicabili le procedure di sovraindebitamento. Il nome Legge 3 è ancora comunemente usato; la disciplina vigente e la procedura applicabile devono essere verificate dal professionista sul caso concreto.',
+	},
+	{
+		question: 'La valutazione garantisce la cancellazione dei debiti?',
+		answer: 'No. La richiesta non garantisce accesso alla procedura, riduzione o cancellazione dei debiti. Requisiti, possibilità ed eventuali benefici dipendono dalla situazione individuale e dalle decisioni degli organi competenti.',
+	},
+	{
+		question: 'Inviare il modulo sospende scadenze o pignoramenti?',
+		answer: 'No. Il contatto non avvia una procedura e non sospende termini, interessi o azioni esecutive. Eventuali tutele richiedono le condizioni e i provvedimenti previsti dalla legge. Segnala subito al professionista eventuali atti con scadenze.',
+	},
+	{
+		question: 'Quali informazioni servono per la prima valutazione?',
+		answer: 'Il professionista potrà chiedere informazioni su debiti e creditori, reddito, patrimonio, spese ed eventuali procedure già avviate. Nel modulo iniziale sono richiesti solo i recapiti: non inserire documenti o dettagli della tua situazione finanziaria.',
+	},
+	{
+		question: 'La richiesta comporta un incarico professionale?',
+		answer: 'No. Prima di un eventuale incarico vanno chiariti le attività proposte, i costi e le condizioni. La valutazione iniziale e l’eventuale assistenza successiva sono fasi distinte; tempi e costi dipendono dalle attività effettivamente concordate.',
+	},
+];
+---
+
+<section class="assessment_details" aria-labelledby="assessment-title">
+	<p class="assessment_brand">Controllo Cartelle Esattoriali</p>
+	<h1 id="assessment-title">Valutazione preliminare dei requisiti per il sovraindebitamento</h1>
+	<p>Il primo passo è capire se la tua situazione presenta i requisiti per le procedure comunemente conosciute come “Legge 3”. Non tutti i casi possono accedervi e nessun esito è automatico.</p>
+
+	<h2>Cosa succede dopo la richiesta?</h2>
+	<ol>
+		<li><strong>Primo contatto:</strong> il team legale raccoglie le informazioni necessarie a inquadrare la richiesta.</li>
+		<li><strong>Valutazione dei requisiti:</strong> il professionista indica i documenti da esaminare e verifica le condizioni della procedura eventualmente applicabile.</li>
+		<li><strong>Chiarezza sui passaggi successivi:</strong> prima di un eventuale incarico vengono illustrati attività, condizioni e costi.</li>
+	</ol>
+	<p>L’eventuale assistenza successiva, comprese le attività di negoziazione con i creditori se pertinenti al caso, è distinta dalla richiesta iniziale e deve essere concordata con il professionista. Questa pagina non promette una riduzione del debito o un accordo con i creditori.</p>
+
+	<h2>Domande frequenti sulla valutazione</h2>
+	{faqs.map(({ question, answer }) => (
+		<details>
+			<summary>{question}</summary>
+			<p>{answer}</p>
+		</details>
+	))}
+
+	<h2>Chi svolge l’assistenza legale?</h2>
+	<p>Controllo Cartelle Esattoriali è il brand del servizio. L’assistenza legale è svolta da Studio Legale Portantiolo &amp; Partners, Strada Comunale delle Corti 61, Treviso. Le informazioni di questa pagina sono generali e non sostituiscono la valutazione professionale del singolo caso.</p>
+</section>
+
+<style>
+	.assessment_details {
+		max-width: var(--max-width);
+		margin: 32px auto 48px;
+		padding: 24px 20px;
+		line-height: 1.65;
+	}
+	.assessment_brand { font-weight: 700; }
+	h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.2; }
+	h2 { margin-top: 32px; font-size: 26px; line-height: 1.3; }
+	li + li { margin-top: 10px; }
+	details { border-bottom: 1px solid #ddd; }
+	summary { padding: 16px 0; font-weight: 700; cursor: pointer; }
+	summary:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+</style>

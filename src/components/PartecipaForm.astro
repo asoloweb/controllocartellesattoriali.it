@@ -13,10 +13,11 @@ const isLeggeTrePage = Astro.url.pathname.replace(/\/+$/, '') === '/legge-3';
 		<div class="contact_form_benefits">
 			<h3>Perché contattarci?</h3>
 			<ul class="contact_form_benefits_list">
-				<li><span aria-hidden="true">✓</span><span>Valutazione del tuo caso</span></li>
-				<li><span aria-hidden="true">✓</span><span>Incontro gratuito con l’avvocato dedicato alla tua posizione</span></li>
-				<li><span aria-hidden="true">✓</span><span>Proposte per risolvere la tua situazione</span></li>
+				<li><span aria-hidden="true">✓</span><span>Prima valutazione dei requisiti di accesso</span></li>
+				<li><span aria-hidden="true">✓</span><span>Esame della situazione con un professionista legale</span></li>
+				<li><span aria-hidden="true">✓</span><span>Informazioni sui documenti e sui passaggi successivi</span></li>
 			</ul>
+			<p>La richiesta non garantisce l’accesso alla procedura né la riduzione o cancellazione dei debiti. Non sospende scadenze o pignoramenti.</p>
 		</div>
 	) : (
 		<p class="contact_form_intro">
@@ -50,7 +51,7 @@ const isLeggeTrePage = Astro.url.pathname.replace(/\/+$/, '') === '/legge-3';
 			</span>
 		</label>
 
-		<button class="contact_form_submit MainButton" type="submit">Invia richiesta</button>
+		<button class="contact_form_submit MainButton" type="submit">{isLeggeTrePage ? 'Richiedi una valutazione dei requisiti' : 'Invia richiesta'}</button>
 		<p class="contact_form_status" role="status" aria-live="polite"></p>
 	</form>
 

@@ -11,7 +11,7 @@ test('Legge 3 form replaces its introduction with a three-point benefits checkli
   const checklist = source.match(/<ul class="contact_form_benefits_list">([\s\S]*?)<\/ul>/)?.[1];
   assert.ok(checklist, 'Benefits must be a semantic list');
   assert.equal((checklist.match(/<li>/g) || []).length, 3);
-  for (const text of ['Valutazione del tuo caso', 'Incontro gratuito con l’avvocato dedicato alla tua posizione', 'Proposte per risolvere la tua situazione']) {
+  for (const text of ['Prima valutazione dei requisiti di accesso', 'Esame della situazione con un professionista legale', 'Informazioni sui documenti e sui passaggi successivi']) {
     assert.ok(checklist.includes(text), `Missing checklist item: ${text}`);
   }
   assert.match(source, /:\s*\(\s*<p class="contact_form_intro">/);
